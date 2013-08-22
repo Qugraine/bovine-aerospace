@@ -1,0 +1,29 @@
+TO GATHER ATMOSPHERIC DATA FOR TRAJECTORY PREDICTION
+
+1.  Determine how many data points are needed for profile.
+On initialization of each program, we must download the entire atmospheric profile from 0 to 50 K because we do not know which nodes we are on.
+After that, however, we can keep track of which levels we are near - and download smaller profiles. 
+We need enough data to make a stable cubic spline, but too much data will unreasonably slow the computer down.
+
+
+2.  Determine how many grid points to download.
+The minimum will depend on what number of points the spatial interpolation program we need will use.
+
+3.  Download model for back forecast and forward forecast, do a weighted average to determine exact atmospheric conditions that balloon is transiting through.
+
+4.  Project lat/lon to cartesian grid using GEOmaps.
+
+5.  Do spatial interpolation on each level to produce a smooth surface.
+
+6.  Determine atmospheric profile of balloon position via cubic spline for each variable of interest.
+
+7.  Use spline function to determine exact conditions at balloon.
+
+Redo steps 6-7 if:
+The position of the object tracked is X kilometers away from its position when the profile was first calculated
+this keeps track of spatial changes of variables
+
+Redo steps 1-6 (excluding total profile download) if the following occurs:
+MODEL TIMEOUT (i.e. we should update the model every X seconds to keep of temporal changes)
+OR
+object crosses model boundaries
