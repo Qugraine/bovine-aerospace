@@ -52,7 +52,7 @@ while (TRUE) {
 
     if (model.date > foreinfo$fcst.date) {
         back.array <- fore.array
-        foreinfo <- GribGrab(levels, variables, which.fcst = "foreward", 
+        foreinfo <- GribGrab(levels, variables, which.fcst = "forward", 
         fcst.date = model.date, file.name = "fcst_fore.grb",
         model.domain = model.domain)
         fore.data <- ReadGrib(foreinfo$file.name, variables, levels)
