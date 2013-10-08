@@ -250,11 +250,17 @@ We can generate atmospheric profiles for temperature, wind speed, and sound spee
 In this case, we will investigate the temperature and wind speed versus height at a model grid node near Chapel Hill, North Carolina ($36^{\circ}$ N, $79^{\circ}$ W).
 The tropopause is clearly visible in the temperature profile at around 15,000 m (Figure \ref{fig:temp_profile}).
 Wind speeds are surprisingly high in the upper atmosphere, exceeding 150 km/hr at 50,000 m (Figure \ref{fig:wind_profile}).
-We end with a quick calculation of sound velocity versus height (Figure \ref{fig:c_profile}) using the formula:
+We then show a quick calculation of sound velocity versus height (Figure \ref{fig:c_profile}) using the formula:
 \begin{equation}
 c = 331.3 \sqrt{1 + \frac{T}{273.15}}
 \end{equation}
 where $c$ is the speed of sound in dry air and $T$ is the temperature in degrees Celsius.
+
+Finally, we end with a calculation of atmospheric density versus height (Figure \ref{fig:rho_profile}) via
+\begin{equation}
+\rho = \frac{p}{R_{specific} T}
+\end{equation}
+where $\rho$ is density, $p$ is pressure, $R_{specific}$ is the specific gas constant for dry air and $T$ is temperature.
 
 \subsection{Code}
 
@@ -404,6 +410,35 @@ dev.off()
 
 @
 
+<<>>=
+
+#FIGURE 8
+#ATMOSPHERIC DENSITY (ASSUMING DRY AIR)
+
+Ti <- which(atmos$variables == "TMP") 
+tmp <- atmos$z[,Ti, loni, lati]
+p <- as.numeric(gsub("\\D", "", atmos$levels)) * 100
+R <- 287.058 #Specific gas constant, J/(kg * K)
+
+rho <- p / (tmp * R) #Air density
+
+rho.spline <- splinefun(hgt, rho, method = "natural")
+synth.hgt <- seq(min(hgt), max(hgt), length.out = 1000)
+synth.rho <- rho.spline(synth.hgt)
+
+png(file = "fig_density_profile.png", width = 500, height = 500)
+
+plot(rho, hgt, pch = 19, col = "red",
+   xlab = "Density (kg/m3)", ylab = "Height (m)",
+   main = paste("Dry Air Density versus Geopotential Height:",
+   atmos$fcst.date))
+lines(synth.rho, synth.hgt, col = "blue")
+legend("topright", col = c("red", "blue"), pch = c(19, NA),
+   lty = c(NA, 1), legend = c("Model Values", "Spline Fit"))
+dev.off()
+
+@
+
 \subsection{Figures}
 
 \FloatBarrier
@@ -432,6 +467,15 @@ dev.off()
 \caption{Sound speed profile of the atmosphere near Chapel Hill, North Carolina.
 This calculation assumes temperature dependence only.}
 \label{fig:c_profile}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics{fig_density_profile.png}
+\end{center}
+\caption{Air profile of the atmosphere near Chapel Hill, North Carolina.
+This calculation assumes that the air is perfectly dry.}
+\label{fig:rho_profile}
 \end{figure}
 
 \end{document}
