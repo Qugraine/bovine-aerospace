@@ -31,18 +31,17 @@ MakeLayerGrids <- function(fcst.grid, resolution, center.point) {
     interp.grid <- fcst.grid 
     interp.grid$center.point <- center.point
     interp.grid$projection <- proj
-    interp.grid$x <- x.cells
-    interp.grid$y <- y.cells
     interp.grid$z <- array(rep(0, x.cells * y.cells * length(fcst.grid$variables) * length(fcst.grid$levels)), 
         dim = c(length(fcst.grid$levels), length(fcst.grid$variables), x.cells, y.cells))
 
     for(k in seq_len(length(interp.grid$levels))) {
         for(j in seq_len(length(interp.grid$variables))) {
-            interp.grid$z[k, j, , ] <- t(array(mba.surf(cbind(x.vec, y.vec, as.vector(fcst.grid$z[k, j, , ])), y.cells, x.cells)$xyz.est$z,
-                dim = c(y.cells, x.cells)))
-            print(max(interp.grid$z[k, 1, , ]) - min(interp.grid$z[k, 1, , ]))
+            grid.est <- mba.surf(cbind(x.vec, y.vec, as.vector(fcst.grid$z[k, j, , ])), y.cells, x.cells)$xyz.est
+            interp.grid$z[k, j, , ] <- t(array(grid.est$z, dim = c(y.cells, x.cells)))
         }
      }
-
+     
+     interp.grid$x <- grid.est$x
+     interp.grid$y <- grid.est$y
      invisible(interp.grid)
 }
