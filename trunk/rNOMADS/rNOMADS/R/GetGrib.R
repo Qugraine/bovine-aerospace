@@ -1,3 +1,70 @@
+GetModelRunHour <- function(model.date = Sys.time(), fcst.date = Sys.time(),
+    url.to.check = c("http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl?dir=%2Fgfs.", "%2Fmaster"), attempts = 10)
+{
+    #Checks for and returns the date for the latest model run time for the requested date.
+    #By default, check for the system time, and get the closest forecast.
+    #If the input is not the current time, get the model forecast closest behind the requested date.
+    #
+    #INPUTS
+    #    MODEL.DATE - a date in POSIXct format saying which GFS model date to use (i.e. when the model was run).  Defaults to the current system time
+    #    FCST.DATE = a date in POSIXct format saying what date the forecast should be for.  Defaults to the current system time.
+    #    URL.TO.CHECK - what URL to append the GFS formatted model run time to
+    #    We use this URL to check if the model has run yet.
+    #    Perhaps, if the default fails, the user can modify this argument to make things work
+    #    ATTEMPTS - number of model runs to check for before giving up
+    #
+    #OUTPUTS as list
+    #    MODEL.HOUR - The model run hour to download
+    #    MODEL.DATE - the full date of the model run
+    #    URL.TESTED - The url that was tested to determine the model hour
+    #    FCST.TDIFF - Time difference between model date and forecast date (i.e. how far in the future the forecast is from the model run that's available) in hours 
+    #    FCST.BACK - The model forecast run immediately before the requested forecast date, in hours, in case that grib file is desired
+    #    FCST.FORE - The model forecast run immediately after the requested forecast date, in hours, in case that grib file is desired
+    
+
+    model.hour <- seq(0, 18, by = 6)
+    fcst.hour <- seq(0, 192, by = 3)
+    #Convert to GMT
+    model.date <- as.POSIXlt(model.date, tz = "GMT")
+    fcst.date <- as.POSIXlt(fcst.date, tz = "GMT")
+    
+    c = 1
+     
+    while (1)
+    {
+       yr <- model.date$year + 1900
+       mo <- model.date$mo + 1
+       mday <- model.date$mday
+       hr <- model.date$hour
+       
+       hr.diff <- model.hour - hr
+       latest.model.run <- model.hour[hr.diff == max(hr.diff[hr.diff <= 0])]
+       model.date <- as.POSIXlt(ISOdatetime(yr, mo, mday, latest.model.run, 0, 0, tz = "GMT"))   
+       fcst.url <- paste(url.to.check[1], yr, sprintf("%02d", mo), sprintf("%02d", mday), sprintf("%02d", latest.model.run), url.to.check[2], sep = "")
+       test <- suppressWarnings(tryCatch(url(fcst.url, open = "rb"), error = NoModelRun))
+       
+       if(test == "Failure") {
+           model.date = as.POSIXlt(model.date - 3600 * 6) #Subtract 6 hours and try again
+       }
+       else {
+           close(test)
+           fcst.tdiff <- as.numeric(difftime(fcst.date, model.date, units = "hours"))
+           fcst.hour.diff <- fcst.hour - fcst.tdiff
+           fcst.back <- fcst.hour[fcst.hour.diff == max(fcst.hour.diff[fcst.hour.diff <=0])]
+           fcst.fore <- fcst.hour[fcst.hour.diff == min(fcst.hour.diff[fcst.hour.diff >=0])]
+           break
+       }
+
+      if (c > attempts) {
+          model.hour <- NA
+          break
+      } 
+      c <- c + 1
+   } 
+   return (list(model.hour = latest.model.run, model.date = as.POSIXlt(ISOdatetime(yr, mo, mday, latest.model.run, 0, 0, tz = "GMT")), 
+        url.tested = fcst.url, fcst.tdiff = fcst.tdiff, fcst.back = fcst.back, fcst.fore = fcst.fore))
+}
+
 GribGrab <- function(levels, variables, which.fcst = "back", local.dir = ".", file.name = "fcst.grb", model.date = Sys.time(), fcst.date = Sys.time(), 
     model.domain = NULL, tidy = FALSE, verbose = TRUE)
 {
@@ -86,75 +153,70 @@ GribGrab <- function(levels, variables, which.fcst = "back", local.dir = ".", fi
    return(list(file.name = file.name, model.date = model.params$model.date, fcst.date = fcst.date))
 }
 
-NoModelRun <- function(e) 
+NOMADSList <- function(abbrev = NULL, display = TRUE) {
+    #Returns a list of model abbreviations, a short description, and URL for each model offered by the NOMADS server
+    #If a specific model abbreviation is requested, the abbreviation is checked against the model list.
+    #If a match is found, information is returned about that model; otherwise an error occurs
+    #INPUTS
+    #    ABBREV is the model abbreviation that rNOMADS uses to figure out which model you want.
+    #    if NULL, returns information on all models
+    #    DISPLAY - if TRUE, prints out a nice table of model abbreviations and long names
+    #OUTPUTS
+    #    MODEL.LIST - a list of model metadata with elements
+    #        $ABBREV - the abbrevation used to call the model in rNOMADS
+    #        $NAME - the name of the model
+    #        $URL - the location of the model on the NOMADS website
+
+    abbrevs <- c(
+    "fnl",
+    "gfs1.0"
+    "gfs0.5",
+    "gfs2.5",
+    "gfse_highres",
+    "gfse_precip_biasc",
+    "gfse_highres_biasc", 
+    "gfse_ndgdres_biasc",
+    "naefs_hires_biasc",
+    "naefs_ndgdres_biasc",
+    "ngac2d",
+    "ngac3d",
+    "ngac_aod")
+
+    names <- c(
+    "Final Operational Global Forecast System Model",
+    "Global Forecast System 1x1 Degree Model",
+    "Global Forecast System 0.5x0.5 Degree Model",
+    "Global Forecast System 2.5x2.5 Degree Model",
+    "Global Forecast System Ensemble",
+    "Global Forecast System Ensemble Precipitation Bias Corrected Model",
+    "Global Forecast System Ensemble Bias Corrected Model",
+    "Global Forecast System Ensemble National Digital Guidance Database Bias Corrected Model",
+    "North American Ensemble Forecast System Bias Corrected Model",
+    "North American Ensemble Forecast System National Digital Guidance Database Bias Corrected Model",
+    "NOAA Environmental Modeling System Global Forecast System Aerosol Component 2D Model",
+    "NOAA Environmental Modeling System Global Forecast System Aerosol Component 3D Model",
+    "NOAA Environmental Modeling System Global Forecast System Aerosol Optical Depth Model")
+
+    urls <- c(
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_fnl.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_2p5.pl", 
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_gens.pl"
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_gensbc_precip.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_gensbc.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_gensbc_ndgd.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_naefsbc.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_naefsbc_ndgd.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_ngac_a2d.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_ngac_a3d.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_ngac_aod.pl")
+
+    )
+}
+NoModelRun <- function(e)
 {
     #Called when code in GetModelRunDate tries to ping a GFS model that has not been run yet
     return ("Failure")
 }
 
-GetModelRunHour <- function(model.date = Sys.time(), fcst.date = Sys.time(),
-    url.to.check = c("http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl?dir=%2Fgfs.", "%2Fmaster"), attempts = 10)
-{
-    #Checks for and returns the date for the latest model run time for the requested date.
-    #By default, check for the system time, and get the closest forecast.
-    #If the input is not the current time, get the model forecast closest behind the requested date.
-    #
-    #INPUTS
-    #    MODEL.DATE - a date in POSIXct format saying which GFS model date to use (i.e. when the model was run).  Defaults to the current system time
-    #    FCST.DATE = a date in POSIXct format saying what date the forecast should be for.  Defaults to the current system time.
-    #    URL.TO.CHECK - what URL to append the GFS formatted model run time to
-    #    We use this URL to check if the model has run yet.
-    #    Perhaps, if the default fails, the user can modify this argument to make things work
-    #    ATTEMPTS - number of model runs to check for before giving up
-    #
-    #OUTPUTS as list
-    #    MODEL.HOUR - The model run hour to download
-    #    MODEL.DATE - the full date of the model run
-    #    URL.TESTED - The url that was tested to determine the model hour
-    #    FCST.TDIFF - Time difference between model date and forecast date (i.e. how far in the future the forecast is from the model run that's available) in hours 
-    #    FCST.BACK - The model forecast run immediately before the requested forecast date, in hours, in case that grib file is desired
-    #    FCST.FORE - The model forecast run immediately after the requested forecast date, in hours, in case that grib file is desired
-    
-
-    model.hour <- seq(0, 18, by = 6)
-    fcst.hour <- seq(0, 192, by = 3)
-    #Convert to GMT
-    model.date <- as.POSIXlt(model.date, tz = "GMT")
-    fcst.date <- as.POSIXlt(fcst.date, tz = "GMT")
-    
-    c = 1
-     
-    while (1)
-    {
-       yr <- model.date$year + 1900
-       mo <- model.date$mo + 1
-       mday <- model.date$mday
-       hr <- model.date$hour
-       
-       hr.diff <- model.hour - hr
-       latest.model.run <- model.hour[hr.diff == max(hr.diff[hr.diff <= 0])]
-       model.date <- as.POSIXlt(ISOdatetime(yr, mo, mday, latest.model.run, 0, 0, tz = "GMT"))   
-       fcst.url <- paste(url.to.check[1], yr, sprintf("%02d", mo), sprintf("%02d", mday), sprintf("%02d", latest.model.run), url.to.check[2], sep = "")
-       test <- suppressWarnings(tryCatch(url(fcst.url, open = "rb"), error = NoModelRun))
-       
-       if(test == "Failure") {
-           model.date = as.POSIXlt(model.date - 3600 * 6) #Subtract 6 hours and try again
-       }
-       else {
-           close(test)
-           fcst.tdiff <- as.numeric(difftime(fcst.date, model.date, units = "hours"))
-           fcst.hour.diff <- fcst.hour - fcst.tdiff
-           fcst.back <- fcst.hour[fcst.hour.diff == max(fcst.hour.diff[fcst.hour.diff <=0])]
-           fcst.fore <- fcst.hour[fcst.hour.diff == min(fcst.hour.diff[fcst.hour.diff >=0])]
-           break
-       }
-
-      if (c > attempts) {
-          model.hour <- NA
-          break
-      } 
-      c <- c + 1
-   } 
-   return (list(model.hour = latest.model.run, model.date = as.POSIXlt(ISOdatetime(yr, mo, mday, latest.model.run, 0, 0, tz = "GMT")), 
-        url.tested = fcst.url, fcst.tdiff = fcst.tdiff, fcst.back = fcst.back, fcst.fore = fcst.fore))
-}
