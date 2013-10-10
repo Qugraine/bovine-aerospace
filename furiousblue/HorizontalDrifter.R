@@ -23,7 +23,7 @@ variables <- c("VGRD", "UGRD", "HGT")
 hrs.ahead <- 0
 start.date <- Sys.time() + 10
 model.step <- 600 #Seconds to step
-flight.time <- 12 * 3600 #How long to fly
+flight.time <- 24 * 3600 #How long to fly
 model.domain <- c(-80, -79, 36.5, 35.5) #Research triangle region
 
 #Start off
