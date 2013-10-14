@@ -180,7 +180,27 @@ NOMADSList <- function(abbrev = NULL, display = TRUE) {
     "naefs_ndgdres_biasc",
     "ngac2d",
     "ngac3d",
-    "ngac_aod")
+    "ngac_aod",
+    "aqm_dm",
+    "aqm_hso",
+    "hires_ak",
+    "hires_econus",
+    "hires_guam",
+    "hires_hi",
+    "hires_pr",
+    "hires_wconus",
+    "nam12_ak",
+    "nam12_conus",
+    "nam12_na",
+    "nam12_carib_ca",
+    "nam12_pa",
+    "nam_nest_ak",
+    "nam_nest_conus",
+    "nam_nest_hi",
+    "nam_nest_pr",
+    "rtma_ak",
+    "rtma_conus",
+)
 
     names <- c(
     "Final Operational Global Forecast System Model",
@@ -195,7 +215,27 @@ NOMADSList <- function(abbrev = NULL, display = TRUE) {
     "North American Ensemble Forecast System National Digital Guidance Database Bias Corrected Model",
     "NOAA Environmental Modeling System Global Forecast System Aerosol Component 2D Model",
     "NOAA Environmental Modeling System Global Forecast System Aerosol Component 3D Model",
-    "NOAA Environmental Modeling System Global Forecast System Aerosol Optical Depth Model")
+    "NOAA Environmental Modeling System Global Forecast System Aerosol Optical Depth Model",
+    "Air Quality Model Daily Maximum",
+    "Air Quality Model Hourly Surface Ozone",
+    "High Res Window Alaska",
+    "High Res Window - East Continental United States",
+    "High Res Window - Guam",
+    "High Res Window - Hawaii",
+    "High Res Window - Puerto Rico",
+    "High Res Window - West Continental United States", 
+    "North American Mesoscale 12 km Model - Alaska",
+    "North American Mesoscale 12 km Model - Continental United States",
+    "North American Mesoscale 12 km Model - North America",
+    "North American Mesoscale 12 km Model - Caribbean and Central America", 
+    "North American Mesoscale 12 km Model - Pacific",
+    "North American Mesoscale Nest Model - Alaska",
+    "North American Mesoscale Nest Model - Continental United States",
+    "North American Mesoscale Nest Model - Hawaii",
+    "North American Mesoscale Nest Model - Puerto Rico",
+    "Real-Time Mesoscale Analysis - Alaska",
+    "Real Time Mesoscale Analysis - Continental United States"
+    )
 
     urls <- c(
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_fnl.pl",
@@ -210,8 +250,26 @@ NOMADSList <- function(abbrev = NULL, display = TRUE) {
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_naefsbc_ndgd.pl",
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_ngac_a2d.pl",
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_ngac_a3d.pl",
-    "http://nomads.ncep.noaa.gov/cgi-bin/filter_ngac_aod.pl")
-
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_ngac_aod.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_aqm_daily.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_aqm_ozone_1hr.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_hiresak.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_hireseast.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_hiresguam.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_hireshi.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_hirespr.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_hireswest.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_nam_ak.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_nam.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_nam_na.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_nam_crb.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_nam_pac.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_nam_alaskanest.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_nam_conusnest.pl", 
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_nam_hawaiinest.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_nam_priconest.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_akrtma.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_rtma.pl"
     )
 }
 NoModelRun <- function(e)
