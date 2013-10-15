@@ -386,9 +386,10 @@ RecursiveWebCrawler <- function(url, url.list = c(), start.depth = 0, max.depth 
     if(is.null(links)) {
         print(url)
         url.list <- append(url.list, url)
+        return(url.list)
     } else {
         for(link in links) {
-            url <- RecursiveWebCrawler(link, url.list, start.depth = start.depth, max.depth = max.depth)
+            url.list <- append(url.list, RecursiveWebCrawler(link, url.list = url.list, start.depth = start.depth, max.depth = max.depth))
         }
     }
 }
