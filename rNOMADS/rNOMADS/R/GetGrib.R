@@ -1,3 +1,17 @@
+CrawlModels <- function(abbrev = NULL, url = NULL, depth = 1000) {
+   #A simple web crawler that looks at the specified model directory online and gets information on all runs of the specified model.
+   #See the NOMADSList function for available models.
+   #Alternatively, pass CrawlModels a URL to get a model that I have not included yet.
+   #INPUTS
+   #    ABBREV - Model abbreviation as defined in NOMADSList().  
+   #        If NULL, use the url you provided, if you did not provide one, throw error.
+   #    URL - Use your own URL and attempt to get model data from it.  
+   #        This is in case NOMADS updates its system before I have a chance to update rNOMADS
+   #    DEPTH - How many links to return; this prevents infinite loops if something goes wrong
+   #OUTPUTS
+   #    URLS.OUT is a list of available models from the given ABBREV or URL
+    
+}
 GetModelRunHour <- function(model.date = Sys.time(), fcst.date = Sys.time(),
     url.to.check = c("http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl?dir=%2Fgfs.", "%2Fmaster"), attempts = 10)
 {
@@ -153,14 +167,13 @@ GribGrab <- function(levels, variables, which.fcst = "back", local.dir = ".", fi
    return(list(file.name = file.name, model.date = model.params$model.date, fcst.date = fcst.date))
 }
 
-NOMADSList <- function(abbrev = NULL, display = TRUE) {
+NOMADSList <- function(abbrev = NULL) {
     #Returns a list of model abbreviations, a short description, and URL for each model offered by the NOMADS server
     #If a specific model abbreviation is requested, the abbreviation is checked against the model list.
     #If a match is found, information is returned about that model; otherwise an error occurs
     #INPUTS
     #    ABBREV is the model abbreviation that rNOMADS uses to figure out which model you want.
     #    if NULL, returns information on all models
-    #    DISPLAY - if TRUE, prints out a nice table of model abbreviations and long names
     #OUTPUTS
     #    MODEL.LIST - a list of model metadata with elements
     #        $ABBREV - the abbrevation used to call the model in rNOMADS
@@ -169,7 +182,7 @@ NOMADSList <- function(abbrev = NULL, display = TRUE) {
 
     abbrevs <- c(
     "fnl",
-    "gfs1.0"
+    "gfs1.0",
     "gfs0.5",
     "gfs2.5",
     "gfse_highres",
@@ -200,49 +213,91 @@ NOMADSList <- function(abbrev = NULL, display = TRUE) {
     "nam_nest_pr",
     "rtma_ak",
     "rtma_conus",
-)
+    "rtma_conus2.5",
+    "rtma_guam",
+    "rtma_hi",
+    "rtma_pr",
+    "rap",
+    "rap_na32",
+    "narre",
+    "sref_conus",
+    "sref_conus_bc",
+    "sref_na32",
+    "sref_na16",
+    "rtofs_at",
+    "rtofs_at_hires",
+    "sea_ice",
+    "wave",
+    "gl_wave",
+    "wave_mgrd",
+    "wave_hur",
+    "wave_nfc",
+    "estofs",
+    "cmc_en",
+    "fnmoc_en")
 
     names <- c(
-    "Final Operational Global Forecast System Model",
-    "Global Forecast System 1x1 Degree Model",
-    "Global Forecast System 0.5x0.5 Degree Model",
-    "Global Forecast System 2.5x2.5 Degree Model",
+    "Final Operational Global Forecast System ",
+    "Global Forecast System 1x1 Degree ",
+    "Global Forecast System 0.5x0.5 Degree ",
+    "Global Forecast System 2.5x2.5 Degree ",
     "Global Forecast System Ensemble",
-    "Global Forecast System Ensemble Precipitation Bias Corrected Model",
-    "Global Forecast System Ensemble Bias Corrected Model",
-    "Global Forecast System Ensemble National Digital Guidance Database Bias Corrected Model",
-    "North American Ensemble Forecast System Bias Corrected Model",
-    "North American Ensemble Forecast System National Digital Guidance Database Bias Corrected Model",
-    "NOAA Environmental Modeling System Global Forecast System Aerosol Component 2D Model",
-    "NOAA Environmental Modeling System Global Forecast System Aerosol Component 3D Model",
-    "NOAA Environmental Modeling System Global Forecast System Aerosol Optical Depth Model",
-    "Air Quality Model Daily Maximum",
-    "Air Quality Model Hourly Surface Ozone",
+    "Global Forecast System Ensemble Precipitation Bias Corrected ",
+    "Global Forecast System Ensemble Bias Corrected ",
+    "Global Forecast System Ensemble National Digital Guidance Database Bias Corrected ",
+    "North American Ensemble Forecast System Bias Corrected ",
+    "North American Ensemble Forecast System National Digital Guidance Database Bias Corrected ",
+    "NOAA Environmental ing System Global Forecast System Aerosol Component 2D",
+    "NOAA Environmental ing System Global Forecast System Aerosol Component 3D",
+    "NOAA Environmental ing System Global Forecast System Aerosol Optical Depth",
+    "Air Quality Daily Maximum",
+    "Air Quality Hourly Surface Ozone",
     "High Res Window Alaska",
     "High Res Window - East Continental United States",
     "High Res Window - Guam",
     "High Res Window - Hawaii",
     "High Res Window - Puerto Rico",
     "High Res Window - West Continental United States", 
-    "North American Mesoscale 12 km Model - Alaska",
-    "North American Mesoscale 12 km Model - Continental United States",
-    "North American Mesoscale 12 km Model - North America",
-    "North American Mesoscale 12 km Model - Caribbean and Central America", 
-    "North American Mesoscale 12 km Model - Pacific",
-    "North American Mesoscale Nest Model - Alaska",
-    "North American Mesoscale Nest Model - Continental United States",
-    "North American Mesoscale Nest Model - Hawaii",
-    "North American Mesoscale Nest Model - Puerto Rico",
+    "North American Mesoscale 12 km - Alaska",
+    "North American Mesoscale 12 km - Continental United States",
+    "North American Mesoscale 12 km - North America",
+    "North American Mesoscale 12 km - Caribbean and Central America", 
+    "North American Mesoscale 12 km - Pacific",
+    "North American Mesoscale Nest - Alaska",
+    "North American Mesoscale Nest - Continental United States",
+    "North American Mesoscale Nest - Hawaii",
+    "North American Mesoscale Nest - Puerto Rico",
     "Real-Time Mesoscale Analysis - Alaska",
-    "Real Time Mesoscale Analysis - Continental United States"
-    )
+    "Real Time Mesoscale Analysis - Continental United States",
+    "Real Time Mesoscale Analysis - Continental United States 2.5 km Resolution",
+    "Real Time Mesoscale Analysis - Guam",
+    "Real Time Mesoscale Analysis - Hawaii",
+    "Real Time Mesoscale Analysis - Puerto Rico",
+    "Rapid Refresh Weather Prediction System",
+    "Rapid Refresh Weather Prediction System - 32 km Resolution",
+    "North American Rapid Refresh Ensemble",
+    "Short Range Ensemble Forecast - Continental United States 40 km",
+    "Short Range Ensemble Forecast - Continental United States 40 km Bias Corrected",
+    "Short Range Ensemble Forecast - Continental United States 32 km",
+    "Short Range Ensemble Forecast - Continental United States 16 km",
+    "Real Time Ocean Forecast System - Atlantic",
+    "Real Time Ocean Forecast System - Atlantic High Resolution",
+    "Sea Ice",
+    "Operational Ocean Wave Predictions",
+    "Opreational Ocean Wave Predictions - Great Lakes",
+    "Multi-grid Wave",
+    "Hurricane Wave",
+    "Combined Wave Ensemble",
+    "Extratropical Surge and Tide Operational Forecast System",
+    "Canadian Meterological Center Global Ensemble",
+    "Fleet Numerical Meteorology and Oceanography Ensemble Forecast System") 
 
     urls <- c(
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_fnl.pl",
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs.pl",
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl",
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_2p5.pl", 
-    "http://nomads.ncep.noaa.gov/cgi-bin/filter_gens.pl"
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_gens.pl",
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_gensbc_precip.pl",
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_gensbc.pl",
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_gensbc_ndgd.pl",
@@ -269,12 +324,72 @@ NOMADSList <- function(abbrev = NULL, display = TRUE) {
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_nam_hawaiinest.pl",
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_nam_priconest.pl",
     "http://nomads.ncep.noaa.gov/cgi-bin/filter_akrtma.pl",
-    "http://nomads.ncep.noaa.gov/cgi-bin/filter_rtma.pl"
-    )
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_rtma.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_rtma2p5.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_gurtma.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_hirtma.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_prrtma.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_rap.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_rap32.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_narre.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_sref.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_srefbc.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_sref_na.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_sref_132.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_ofs.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_rtofs_hires.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_seaice.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_wave.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_glw.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_wave_multi.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_hurricane_wave.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_nfcens.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_estofs.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_cmcens.pl",
+    "http://nomads.ncep.noaa.gov/cgi-bin/filter_fens.pl")
+
+    if(!is.null(abbrev)) {
+        i <- which(abbrevs == abbrev)
+        if(length(i) == 0) {
+            stop(paste("The model you searched for:\"", abbrev, "\"is not included in rNOMADS.  Sorry!"))
+        } else {
+             return(list(abbrev = abbrev, name = names[i], url = urls[i]))
+        }
+    }
+    
+    if(display) {
+        cat(paste(abbrevs
+    return(list(abbrevs = abbrevs, names = names, urls = urls))
 }
 NoModelRun <- function(e)
 {
     #Called when code in GetModelRunDate tries to ping a GFS model that has not been run yet
     return ("Failure")
+}
+
+RecursiveWebCrawler <- function(url, url.list = c(), start.depth = 0, max.depth = 1000) {
+#    This function recursively searches for links in the given url and follows every single link, to a maximum of DEPTH.
+#    It returns a list of the final (dead end) URLs.
+#    Many thanks to users David F and Adam Smith on stackoverflow for the link parser:
+#    http://stackoverflow.com/questions/3746256/extract-links-from-webpage-using-r/3746290#3746290
+#    INPUTS
+#        URL is the url to start looking in
+#        START.DEPTH is the current number of links that have been searched (useful for recursion)
+#        MAX.DEPTH is the maximum number of links to follow; stops infinite loops
+#    OUTPUTS
+#        URLS.OUT are the URLs at the end of the road
+#        DEPTH is the number of URLS that have been found so far
+
+    doc <- htmlParse(url)
+    links <- xpathSApply(doc, "//a/@href")
+    free(doc)
+    if(is.null(links)) {
+        print(url)
+        url.list <- append(url.list, url)
+    } else {
+        for(link in links) {
+            url <- RecursiveWebCrawler(link, url.list, start.depth = start.depth, max.depth = max.depth)
+        }
+    }
 }
 
