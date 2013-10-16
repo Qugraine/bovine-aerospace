@@ -10,7 +10,16 @@ CrawlModels <- function(abbrev = NULL, url = NULL, depth = 1000) {
    #    DEPTH - How many links to return; this prevents infinite loops if something goes wrong
    #OUTPUTS
    #    URLS.OUT is a list of available models from the given ABBREV or URL
-    
+
+   if(is.null(url) & is.null(abbrev)) {
+       stop("No models specified.")
+   }
+   
+   if(is.null(url)) {
+       url <- NOMADSList(abbrev) 
+   }   
+
+   urls.out <- unlist(WebCrawler(url), recursive = TRUE, use.names = FALSE) 
 }
 GetModelRunHour <- function(model.date = Sys.time(), fcst.date = Sys.time(),
     url.to.check = c("http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl?dir=%2Fgfs.", "%2Fmaster"), attempts = 10)
@@ -367,30 +376,28 @@ NoModelRun <- function(e)
     return ("Failure")
 }
 
-RecursiveWebCrawler <- function(url, url.list = c(), start.depth = 0, max.depth = 1000) {
+WebCrawler <- function(url) {
 #    This function recursively searches for links in the given url and follows every single link, to a maximum of DEPTH.
 #    It returns a list of the final (dead end) URLs.
 #    Many thanks to users David F and Adam Smith on stackoverflow for the link parser:
 #    http://stackoverflow.com/questions/3746256/extract-links-from-webpage-using-r/3746290#3746290
 #    INPUTS
 #        URL is the url to start looking in
-#        START.DEPTH is the current number of links that have been searched (useful for recursion)
-#        MAX.DEPTH is the maximum number of links to follow; stops infinite loops
 #    OUTPUTS
 #        URLS.OUT are the URLs at the end of the road
-#        DEPTH is the number of URLS that have been found so far
 
-    doc <- htmlParse(url)
+ doc <- htmlParse(url)
     links <- xpathSApply(doc, "//a/@href")
     free(doc)
     if(is.null(links)) {
-        print(url)
-        url.list <- append(url.list, url)
-        return(url.list)
+        return(url)
     } else {
+        urls.out <- vector("list", length = length(links))
         for(link in links) {
-            url.list <- append(url.list, RecursiveWebCrawler(link, url.list = url.list, start.depth = start.depth, max.depth = max.depth))
+           print(link)
+           ret[[link]] <- WebCrawler(link)
         }
+        return(urls.out)
     }
 }
 
