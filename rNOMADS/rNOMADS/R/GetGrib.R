@@ -16,10 +16,10 @@ CrawlModels <- function(abbrev = NULL, url = NULL, depth = 1000) {
    }
    
    if(is.null(url)) {
-       url <- NOMADSList(abbrev) 
+       model.info <- NOMADSList(abbrev) 
    }   
 
-   urls.out <- unlist(WebCrawler(url), recursive = TRUE, use.names = FALSE) 
+   urls.out <- unlist(WebCrawler(model.info$url[1]), recursive = TRUE, use.names = FALSE) 
 }
 GetModelRunHour <- function(model.date = Sys.time(), fcst.date = Sys.time(),
     url.to.check = c("http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl?dir=%2Fgfs.", "%2Fmaster"), attempts = 10)
@@ -366,8 +366,6 @@ NOMADSList <- function(abbrev = NULL) {
         }
     }
     
-    if(display) {
-        cat(paste(abbrevs
     return(list(abbrevs = abbrevs, names = names, urls = urls))
 }
 NoModelRun <- function(e)
@@ -376,8 +374,27 @@ NoModelRun <- function(e)
     return ("Failure")
 }
 
+ParseModelPage <- function(model.url) {
+#    This function determines the available predictions, levels, and variables for a given model page.
+#    It returns a list of these predictions, levels, and variables so that a call to the model can be constructed.
+#    INPUTS
+#        MODEL.URL is one of the model pages returned by CrawlModels
+#    OUTPUTS
+#        MODEL.PARAMETERS - a list with elements
+#            MODEL.PARAMETERS$PRED - Individual "predictions" - i. e. individual outputs for each model instance
+#            MODEL.PARAMETERS$LEVELS - the model levels
+#            MODEL.PARAMETERS$VARIABLES - the types of data provided by the models
+
+    html.code <- scrape(model.url, parse = FALSE)
+    pred <- gsub("option value=\"", "", str_extract_all(html.code[[1]], "option value=\"[^\"]+")[[1]])
+    levels <- gsub("lev_", "", str_extract_all(html.code[[1]], "lev_[^\"]+")[[1]], fixed = TRUE)
+    variables <- gsub("var_", "", str_extract_all(html.code[[1]], "var_[^\"]+")[[1]], fixed = TRUE)
+     
+    return(model.parameters = list(pred, levels, variables))
+}
+
 WebCrawler <- function(url) {
-#    This function recursively searches for links in the given url and follows every single link, to a maximum of DEPTH.
+#    This function recursively searches for links in the given url and follows every single link.
 #    It returns a list of the final (dead end) URLs.
 #    Many thanks to users David F and Adam Smith on stackoverflow for the link parser:
 #    http://stackoverflow.com/questions/3746256/extract-links-from-webpage-using-r/3746290#3746290
@@ -394,8 +411,7 @@ WebCrawler <- function(url) {
     } else {
         urls.out <- vector("list", length = length(links))
         for(link in links) {
-           print(link)
-           ret[[link]] <- WebCrawler(link)
+           urls.out[[link]] <- WebCrawler(link)
         }
         return(urls.out)
     }
