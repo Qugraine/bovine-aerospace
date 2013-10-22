@@ -1,4 +1,4 @@
-CrawlModels <- function(abbrev = NULL, url = NULL, depth = 1000) {
+CrawlModels <- function(abbrev = NULL, url = NULL, depth = NULL, verbose = TRUE) {
    #A simple web crawler that looks at the specified model directory online and gets information on all runs of the specified model.
    #See the NOMADSList function for available models.
    #Alternatively, pass CrawlModels a URL to get a model that I have not included yet.
@@ -7,7 +7,8 @@ CrawlModels <- function(abbrev = NULL, url = NULL, depth = 1000) {
    #        If NULL, use the url you provided, if you did not provide one, throw error.
    #    URL - Use your own URL and attempt to get model data from it.  
    #        This is in case NOMADS updates its system before I have a chance to update rNOMADS
-   #    DEPTH - How many links to return; this prevents infinite loops if something goes wrong
+   #    DEPTH - How many links to return; set this to 1 if you only want the latest model (this will speed things up significantly)
+   #    VERBOSE - Print each link you find as you find it
    #OUTPUTS
    #    URLS.OUT is a list of available models from the given ABBREV or URL
 
@@ -19,7 +20,7 @@ CrawlModels <- function(abbrev = NULL, url = NULL, depth = 1000) {
        model.info <- NOMADSList(abbrev) 
    }   
 
-   urls.out <- unlist(WebCrawler(model.info$url[1]), recursive = TRUE, use.names = FALSE) 
+   urls.out <- unlist(WebCrawler(model.info$url[1], depth = depth, verbose = verbose), recursive = TRUE, use.names = FALSE) 
 }
 GetModelRunHour <- function(model.date = Sys.time(), fcst.date = Sys.time(),
     url.to.check = c("http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl?dir=%2Fgfs.", "%2Fmaster"), attempts = 10)
@@ -88,23 +89,20 @@ GetModelRunHour <- function(model.date = Sys.time(), fcst.date = Sys.time(),
         url.tested = fcst.url, fcst.tdiff = fcst.tdiff, fcst.back = fcst.back, fcst.fore = fcst.fore))
 }
 
-GribGrab <- function(levels, variables, which.fcst = "back", local.dir = ".", file.name = "fcst.grb", model.date = Sys.time(), fcst.date = Sys.time(), 
+GribGrab <- function(model.url, pred, levels, variables, local.dir = ".", file.name = "fcst.grb", 
     model.domain = NULL, tidy = FALSE, verbose = TRUE)
 {
     #Get grib file from the GFS forecast repository
     #INPUTS
-    #    LEVELS is the vertical region to return data for,  as vector
-    #    VARIABLES is the data to return, as vector
-    #    WHICH.FCST determines if you want the forecast BEFORE the requested time ("back") or AFTER the requested time ("forward"), defaults to "back"
+    #    MODEL.URL is the URL of the model, as one of the elements returned by CrawlModels
+    #    PRED is the exact model run you want, generally from ParseModelPage
+    #    LEVELS is the vertical region to return data for,  as vector, generally from ParseModelPage
+    #    VARIABLES is the data to return, as vector, generally from ParseModelPage
     #    LOCAL.DIR is the directory to save the files in
     #    FILE.NAME is the directory path and file name to save the grib file on disk, defaults to "fcst.grb" in current directory
-    #    MODEL.DATE is the date and time of the requested model run, in GMT and POSIXlt format, defaults to current system time
-    #    FCST.DATE is the requested forecast date, defaults to current system time
     #    MODEL.DOMAIN is a vector of latitudes and longitudes that specify the area to return a forecast for
     #    This is a rectangle with elements: west longitude, east longitude, north latitude, south latitude
     #    Defaults to entire planet
-    #    LEVELS is the vertical region to return data for
-    #    VARIABLES is the data to return
     #    TIDY asks whether to delete all grib files in the directory specified in FILE.NAME, default FALSE.
     #    This is useful to clear out previous model runs.
     #    It looks for all files named '.grb' and removes them.
@@ -115,38 +113,10 @@ GribGrab <- function(levels, variables, which.fcst = "back", local.dir = ".", fi
    if(tidy) {
         unlink(list.files(local.dir, pattern = "*\\.grb$"))
    }
+
+   model.str <- strsplit(model.url, "?dir=")[[1]]
    levels.str <- paste(gsub(" ", "_", levels), collapse = "=on&lev_")
    variables.str <- paste(variables, collapse = "=on&var_")
-
-   #Convert dates to GMT
-   
-    model.date <- as.POSIXlt(model.date, tz = "GMT")
-    fcst.date <- as.POSIXlt(fcst.date, tz = "GMT")
-
-   #Check for latest model run date
-   model.params <- GetModelRunHour(model.date = model.date, fcst.date = fcst.date) 
-   if(is.na(model.params$model.hour)) {
-       stop("Could not find the latest model run date.  Make sure you have a working Internet connection.  If you do and this code is still not working, it may be that the NOMADS website is down.
-           Give it a an hour or so, and try again.")
-   }
-   if(model.params$model.date > fcst.date) {
-      stop("The reqested model date is after the requested forecast date! This means you are trying to access a forecast from a model that has not been run yet.")
-   }
-   if(which.fcst == "back") {
-       fcst.date <- as.POSIXlt(model.params$model.date + 3600 * model.params$fcst.back)
-       grb.name <- paste("gfs.t", sprintf("%02d", model.params$model.hour), "z.mastergrb2f",
-       sprintf("%02d", model.params$fcst.back), "&", sep = "")
-   } else if (which.fcst == "forward") { 
-       fcst.date <- as.POSIXlt(model.params$model.date + 3600 * model.params$fcst.fore)
-       grb.name <- paste("gfs.t", sprintf("%02d", model.params$model.hour), "z.mastergrb2f",
-       sprintf("%02d", model.params$fcst.fore), "&", sep = "")
-   } else {
-       stop(paste("Did not recognize the forecast designation ", 
-       which.fcst, 
-       ".  Please use either \"back\" for the nearest forecast time BEFORE the requested time, 
-       or \"forward\" for the nearest forecast time AFTER the requested time.", sep = ""))
-   }
-   grb.dir <- paste("dir=", strsplit(model.params$url.tested, split = "dir=")[[1]][2], sep = "")
 
    if(!is.null(model.domain)) {
        subregion.str <- paste( "=on&subregion=",
@@ -159,21 +129,18 @@ GribGrab <- function(levels, variables, which.fcst = "back", local.dir = ".", fi
        subregion.str <- "=on&" 
     }
 
-   grb.url <- paste("http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl?file=",
-       grb.name,
-       "lev_",
+   grb.url <- paste0(paste0(model.str[1], "file=", pred, "&lev_"),
        levels.str,
        "=on&var_",
        variables.str,
        subregion.str,
-       grb.dir,
-       sep = "") 
+       paste0("dir=", model.str[2]))
 
       #now write download logic
 
    download.file(grb.url, paste(local.dir,file.name, sep = "/"), mode = "wb", quiet = !verbose)
    
-   return(list(file.name = file.name, model.date = model.params$model.date, fcst.date = fcst.date))
+   return(file.name)
 }
 
 NOMADSList <- function(abbrev = NULL) {
@@ -386,14 +353,15 @@ ParseModelPage <- function(model.url) {
 #            MODEL.PARAMETERS$VARIABLES - the types of data provided by the models
 
     html.code <- scrape(model.url, parse = FALSE)
-    pred <- gsub("option value=\"", "", str_extract_all(html.code[[1]], "option value=\"[^\"]+")[[1]])
-    levels <- gsub("lev_", "", str_extract_all(html.code[[1]], "lev_[^\"]+")[[1]], fixed = TRUE)
-    variables <- gsub("var_", "", str_extract_all(html.code[[1]], "var_[^\"]+")[[1]], fixed = TRUE)
+    model.parameters <- list()
+    model.parameters$pred <- gsub("option value=\"", "", str_extract_all(html.code[[1]], "option value=\"[^\"]+")[[1]])
+    model.parameters$levels <- gsub("lev_", "", str_extract_all(html.code[[1]], "lev_[^\"]+")[[1]], fixed = TRUE)
+    model.parameters$variables <- gsub("var_", "", str_extract_all(html.code[[1]], "var_[^\"]+")[[1]], fixed = TRUE)
      
-    return(model.parameters = list(pred, levels, variables))
+    return(model.parameters)
 }
 
-WebCrawler <- function(url) {
+WebCrawler <- function(url, depth = NULL, verbose = TRUE) {
 #    This function recursively searches for links in the given url and follows every single link.
 #    It returns a list of the final (dead end) URLs.
 #    Many thanks to users David F and Adam Smith on stackoverflow for the link parser:
@@ -407,10 +375,18 @@ WebCrawler <- function(url) {
     links <- xpathSApply(doc, "//a/@href")
     free(doc)
     if(is.null(links)) {
+        if(verbose) {
+            print(url)
+        }
         return(url)
     } else {
         urls.out <- vector("list", length = length(links))
         for(link in links) {
+           if(!is.null(depth)) {
+               if(length(unlist(urls.out)) >= depth) {
+                   break
+               }
+            }
            urls.out[[link]] <- WebCrawler(link)
         }
         return(urls.out)
