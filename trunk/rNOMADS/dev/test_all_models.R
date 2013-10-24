@@ -21,16 +21,15 @@ for(m in model.list$abbrevs) {
            }
            ind <- ind + 1
            for(k in seq_len(length(model.parameters$levels))) {
-               if(!(grepl("\\^", model.parameters$levels[k]) | grepl("\\\\", model.parameters$levels[k]))) { #Handle problematic characters - need to fix later!
-                   file.name <- GribGrab(urls.out[length(urls.out)], model.parameters$pred[1], model.parameters$levels[k], model.parameters$variables[ind], file.name = paste0(m,".grb"))
+                file.name <- GribGrab(urls.out[length(urls.out)], model.parameters$pred[1], model.parameters$levels[k], model.parameters$variables[ind], file.name = paste0(m,".grb"))
                }
-               if(file.info(file.name)$size > 0) {
-                   break
-               }
+            if(file.info(file.name)$size > 0) {
+               break
            }
        }
 
    }
 }
+
 
 
