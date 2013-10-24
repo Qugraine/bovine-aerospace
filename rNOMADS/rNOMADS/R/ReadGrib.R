@@ -1,4 +1,4 @@
-ReadGrib <- function(file.name, variables, levels) {
+ReadGrib <- function(file.name, variables, levels = NULL) {
     #This is a function to read forecast data from a Grib file
     #INPUTS
     #    FILE.NAME - Grib file name
@@ -18,11 +18,15 @@ ReadGrib <- function(file.name, variables, levels) {
 
     match.str.lst <- strsplit(match.str, split = "")[[1]]
     match.str <- paste(match.str.lst[1:(length(match.str.lst) - 1)], collapse = "")
-    match.str <- paste(match.str, "):(", sep = "")
 
-    for(lvl in levels) {
-        match.str <- paste(match.str, lvl, "|", sep = "")
-    }
+    if(length(levels) > 0 & !is.null(levels)) {
+        match.str <- paste(match.str, "):(", sep = "")
+        for(lvl in levels) {
+            match.str <- paste(match.str, lvl, "|", sep = "")
+        }
+    } else {
+        match.str <- paste0(match.str, ")")
+   }
 
     match.str.lst <- strsplit(match.str, split = "")[[1]]
     match.str <- paste(match.str, '"', sep = "")
@@ -43,13 +47,11 @@ ReadGrib <- function(file.name, variables, levels) {
     return(model.data)
 }
 
-ModelGrid <- function(model.data, lon.grid, lat.grid, variables = NULL, levels = NULL, model.domain = NULL) {
+ModelGrid <- function(model.data, variables = NULL, levels = NULL, model.domain = NULL) {
     #Transform model data array into a grid with dimensions levels x variables x lon range x lat range
     #This should reduce the size of the returned data by removing redundant information
     #INPUTS
     #    MODEL.DATA - Data returned by ReadGrib
-    #    LON.GRID - spacing of longitude grid
-    #    LAT.GRID - spacing of latitude grid
     #    VARIABLES - variables to include in grid, if NULL, include all of them
     #    LEVELS - levels to include in grid, if NULL, include all of them
     #    MODEL.DOMAIN - vector c(LEFT LON, RIGHT LON, TOP LAT, BOTTOM LAT) of region to include in output. If NULL, include everything.
@@ -65,6 +67,9 @@ ModelGrid <- function(model.data, lon.grid, lat.grid, variables = NULL, levels =
     #       $FCST.DATE - what date the forecast is for
   
     model.run.date <- unique(model.data[,1])
+
+    lat.grid <- unique(round(diff(sort(unique(as.numeric(model.data[,6])))), digits = 5))
+    lon.grid <- unique(round(diff(sort(unique(as.numeric(model.data[,5])))), digits = 5))
 
     if(length(model.run.date) > 1) {
         warning("There appears to be more than one model run date in your model grid!")
