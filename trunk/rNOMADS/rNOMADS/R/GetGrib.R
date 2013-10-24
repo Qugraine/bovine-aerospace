@@ -18,75 +18,10 @@ CrawlModels <- function(abbrev = NULL, url = NULL, depth = NULL, verbose = TRUE)
    
    if(is.null(url)) {
        model.info <- NOMADSList(abbrev) 
+       url <- model.info$url[1]
    }   
 
-   urls.out <- unlist(WebCrawler(model.info$url[1], depth = depth, verbose = verbose), recursive = TRUE, use.names = FALSE) 
-}
-GetModelRunHour <- function(model.date = Sys.time(), fcst.date = Sys.time(),
-    url.to.check = c("http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl?dir=%2Fgfs.", "%2Fmaster"), attempts = 10)
-{
-    #Checks for and returns the date for the latest model run time for the requested date.
-    #By default, check for the system time, and get the closest forecast.
-    #If the input is not the current time, get the model forecast closest behind the requested date.
-    #
-    #INPUTS
-    #    MODEL.DATE - a date in POSIXct format saying which GFS model date to use (i.e. when the model was run).  Defaults to the current system time
-    #    FCST.DATE = a date in POSIXct format saying what date the forecast should be for.  Defaults to the current system time.
-    #    URL.TO.CHECK - what URL to append the GFS formatted model run time to
-    #    We use this URL to check if the model has run yet.
-    #    Perhaps, if the default fails, the user can modify this argument to make things work
-    #    ATTEMPTS - number of model runs to check for before giving up
-    #
-    #OUTPUTS as list
-    #    MODEL.HOUR - The model run hour to download
-    #    MODEL.DATE - the full date of the model run
-    #    URL.TESTED - The url that was tested to determine the model hour
-    #    FCST.TDIFF - Time difference between model date and forecast date (i.e. how far in the future the forecast is from the model run that's available) in hours 
-    #    FCST.BACK - The model forecast run immediately before the requested forecast date, in hours, in case that grib file is desired
-    #    FCST.FORE - The model forecast run immediately after the requested forecast date, in hours, in case that grib file is desired
-    
-
-    model.hour <- seq(0, 18, by = 6)
-    fcst.hour <- seq(0, 192, by = 3)
-    #Convert to GMT
-    model.date <- as.POSIXlt(model.date, tz = "GMT")
-    fcst.date <- as.POSIXlt(fcst.date, tz = "GMT")
-    
-    c = 1
-     
-    while (1)
-    {
-       yr <- model.date$year + 1900
-       mo <- model.date$mo + 1
-       mday <- model.date$mday
-       hr <- model.date$hour
-       
-       hr.diff <- model.hour - hr
-       latest.model.run <- model.hour[hr.diff == max(hr.diff[hr.diff <= 0])]
-       model.date <- as.POSIXlt(ISOdatetime(yr, mo, mday, latest.model.run, 0, 0, tz = "GMT"))   
-       fcst.url <- paste(url.to.check[1], yr, sprintf("%02d", mo), sprintf("%02d", mday), sprintf("%02d", latest.model.run), url.to.check[2], sep = "")
-       test <- suppressWarnings(tryCatch(url(fcst.url, open = "rb"), error = NoModelRun))
-       
-       if(test == "Failure") {
-           model.date = as.POSIXlt(model.date - 3600 * 6) #Subtract 6 hours and try again
-       }
-       else {
-           close(test)
-           fcst.tdiff <- as.numeric(difftime(fcst.date, model.date, units = "hours"))
-           fcst.hour.diff <- fcst.hour - fcst.tdiff
-           fcst.back <- fcst.hour[fcst.hour.diff == max(fcst.hour.diff[fcst.hour.diff <=0])]
-           fcst.fore <- fcst.hour[fcst.hour.diff == min(fcst.hour.diff[fcst.hour.diff >=0])]
-           break
-       }
-
-      if (c > attempts) {
-          model.hour <- NA
-          break
-      } 
-      c <- c + 1
-   } 
-   return (list(model.hour = latest.model.run, model.date = as.POSIXlt(ISOdatetime(yr, mo, mday, latest.model.run, 0, 0, tz = "GMT")), 
-        url.tested = fcst.url, fcst.tdiff = fcst.tdiff, fcst.back = fcst.back, fcst.fore = fcst.fore))
+   urls.out <- unlist(WebCrawler(url, depth = depth, verbose = verbose), recursive = TRUE, use.names = FALSE) 
 }
 
 GribGrab <- function(model.url, pred, levels, variables, local.dir = ".", file.name = "fcst.grb", 
@@ -334,11 +269,6 @@ NOMADSList <- function(abbrev = NULL) {
     }
     
     return(list(abbrevs = abbrevs, names = names, urls = urls))
-}
-NoModelRun <- function(e)
-{
-    #Called when code in GetModelRunDate tries to ping a GFS model that has not been run yet
-    return ("Failure")
 }
 
 ParseModelPage <- function(model.url) {
