@@ -72,7 +72,9 @@ GribGrab <- function(model.url, pred, levels, variables, local.dir = ".", file.n
        paste0("dir=", model.str[2]))
 
       #now write download logic
-
+   
+   grb.url <- str_replace_all(grb.url,  "\\^", "%5e")
+   grb.url <- str_replace_all(grb.url,  "\\\\", "%2F")
    download.file(grb.url, paste(local.dir,file.name, sep = "/"), mode = "wb", quiet = !verbose)
    
    return(file.name)
