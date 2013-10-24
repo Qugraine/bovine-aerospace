@@ -50,11 +50,15 @@ GribGrab <- function(model.url, pred, levels, variables, local.dir = ".", file.n
    }
 
    model.str <- strsplit(model.url, "?dir=")[[1]]
-   levels.str <- paste(gsub(" ", "_", levels), collapse = "=on&lev_")
+   if(length(levels) > 0 & !is.null(levels)) {
+        levels.str <- paste0("&lev_", paste(gsub(" ", "_", levels), collapse = "=on&lev_"), "=on")
+   } else {
+       levels.str <- ""
+   }
    variables.str <- paste(variables, collapse = "=on&var_")
 
    if(!is.null(model.domain)) {
-       subregion.str <- paste( "=on&subregion=",
+       subregion.str <- paste("=on&subregion=",
        "&leftlon=", model.domain[1],
        "&rightlon=", model.domain[2],
        "&toplat=", model.domain[3],
@@ -64,9 +68,9 @@ GribGrab <- function(model.url, pred, levels, variables, local.dir = ".", file.n
        subregion.str <- "=on&" 
     }
 
-   grb.url <- paste0(paste0(model.str[1], "file=", pred, "&lev_"),
+   grb.url <- paste0(paste0(model.str[1], "file=", pred),
        levels.str,
-       "=on&var_",
+       "&var_",
        variables.str,
        subregion.str,
        paste0("dir=", model.str[2]))
@@ -324,4 +328,3 @@ WebCrawler <- function(url, depth = NULL, verbose = TRUE) {
         return(urls.out)
     }
 }
-
