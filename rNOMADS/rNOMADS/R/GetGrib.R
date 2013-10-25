@@ -302,6 +302,23 @@ ParseModelPage <- function(model.url) {
     return(model.parameters)
 }
 
+SanitizeURL <- function(bad.strs) {
+#    This function replaces illegal characters in levels and variables prior to constructing the model retrieval URL.
+#    INPUTS
+#        BAD.STRS - A vector of strings, possibly with illegal URL characters
+#    OUTPUTS
+#        GOOD.STRS - A vector of strings with illegal characters replaced by URL codes
+
+   good.strs <- str_replace_all(bad.strs,  "\\^", "%5E")
+   good.strs <- str_replace_all(good.strs,  "\\\\\\(", "%5C%28")
+   good.strs <- str_replace_all(good.strs,  "\\\\\\)", "%5C%29")
+   good.strs <- str_replace_all(good.strs,  "\\\\", "%5C")
+   good.strs <- str_replace_all(good.strs, "=","%3D")
+   good.strs <- str_replace_all(good.strs, "/", "%2F")
+
+   return(good.strs)
+}
+
 WebCrawler <- function(url, depth = NULL, verbose = TRUE) {
 #    This function recursively searches for links in the given url and follows every single link.
 #    It returns a list of the final (dead end) URLs.
