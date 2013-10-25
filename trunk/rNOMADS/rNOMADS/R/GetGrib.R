@@ -49,13 +49,14 @@ GribGrab <- function(model.url, pred, levels, variables, local.dir = ".", file.n
         unlink(list.files(local.dir, pattern = "*\\.grb$"))
    }
 
+
    model.str <- strsplit(model.url, "?dir=")[[1]]
    if(length(levels) > 0 & !is.null(levels)) {
-        levels.str <- paste0("&lev_", paste(gsub(" ", "_", levels), collapse = "=on&lev_"), "=on")
+        levels.str <- paste0("&lev_", paste(gsub(" ", "_", SanitizeURL(levels)), collapse = "=on&lev_"), "=on")
    } else {
        levels.str <- ""
    }
-   variables.str <- paste(variables, collapse = "=on&var_")
+   variables.str <- paste(SanitizeURL(variables), collapse = "=on&var_")
 
    if(!is.null(model.domain)) {
        subregion.str <- paste("=on&subregion=",
@@ -77,13 +78,6 @@ GribGrab <- function(model.url, pred, levels, variables, local.dir = ".", file.n
 
       #now write download logic
    
-   grb.url <- str_replace_all(grb.url,  "\\^", "%5e")
-   grb.url <- str_replace_all(grb.url,  "\\\\\\(", "%5C%28")
-   grb.url <- str_replace_all(grb.url,  "\\\\\\)", "%5C%29")
-   grb.url <- str_replace_all(grb.url,  "\\\\", "%2F")
-   grb.url <- str_replace_all(grb.url, "=","%3d")
-   grb.url <- str_replace_all(grb.url, "/", "%5c")
- 
    download.file(grb.url, paste(local.dir,file.name, sep = "/"), mode = "wb", quiet = !verbose)
    
    return(file.name)

@@ -68,8 +68,8 @@ ModelGrid <- function(model.data, variables = NULL, levels = NULL, model.domain 
   
     model.run.date <- unique(model.data[,1])
 
-    lat.grid <- unique(round(diff(sort(unique(as.numeric(model.data[,6])))), digits = 5))
-    lon.grid <- unique(round(diff(sort(unique(as.numeric(model.data[,5])))), digits = 5))
+    lat.grid <- unique(round(diff(as.numeric(sort(unique(model.data[,6]))))))
+    lon.grid <- unique(round(diff(as.numeric(sort(unique(model.data[,5])))))) 
 
     if(length(model.run.date) > 1) {
         warning("There appears to be more than one model run date in your model grid!")
@@ -111,8 +111,8 @@ ModelGrid <- function(model.data, variables = NULL, levels = NULL, model.domain 
 
     #Build grid
 
-    lons <- seq(model.domain[1], model.domain[2], by = lon.grid)
-    lats <- seq(model.domain[4], model.domain[3], by = lat.grid)
+    lons <- as.numeric(sort(unique(model.data[,5])))
+    lats <- as.numeric(sort(unique(model.data[,6])))
     grid <- list(x = lons, y = lats)
     
     fcst.grid <- list(z = array(rep(NA, length(lons) * length(lats) * length(variables) * length(levels)),
