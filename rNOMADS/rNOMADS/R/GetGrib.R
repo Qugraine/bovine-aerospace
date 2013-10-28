@@ -339,7 +339,7 @@ WebCrawler <- function(url, depth = NULL, verbose = TRUE) {
                    break
                }
             }
-           urls.out[[link]] <- WebCrawler(link)
+           urls.out[[link]] <- WebCrawler(link, depth = depth, verbose = verbose)
         }
         return(urls.out)
     }

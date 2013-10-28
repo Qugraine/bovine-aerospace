@@ -117,7 +117,7 @@ ModelGrid <- function(model.data, levels = NULL, variables = NULL, model.domain 
     
     fcst.grid <- list(z = array(rep(NA, length(lons) * length(lats) * length(variables) * length(levels)),
         dim = c(length(levels), length(variables), length(lons), length(lats))), 
-        x = lons, y = lats, variables = variables, levels = levels, 
+        x = sort(lons), y = sort(lats), variables = variables, levels = levels, 
         model.run.date = model.run.date, fcst.date = fcst.date)
 
     #Put variables and levels into a series of layered images

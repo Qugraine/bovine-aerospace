@@ -8,7 +8,7 @@ Discover all links on a given web page, follow each one, and recursively scan ev
 Return a list of web addresses whose pages contain no links.
 }
 \usage{
-WebCrawler(url, depth = NULL)
+WebCrawler(url, depth = NULL, verbose = TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -35,7 +35,7 @@ WebCrawler(url, depth = NULL)
 Daniel Bowman \email{daniel.bowman@unc.edu}
 }
 \note{
-While it might be fun to try \code{WebCrawler} on a large website such as Google, the results will be unpredictable and perhaps disasterous if \code{depth} is not set.
+While it might be fun to try \code{WebCrawler} on a large website such as Google, the results will be unpredictable and perhaps disastrous if \code{depth} is not set.
 This is because there is no protection against infinite recursion. 
 }
 

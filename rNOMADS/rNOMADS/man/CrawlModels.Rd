@@ -12,11 +12,11 @@ CrawlModels(abbrev = NULL, url = NULL, depth = NULL, verbose = TRUE)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{abbrev}{
-   The model abbreviation, see \code{NOMADSList}.
+   The model abbreviation, see \code{\link{NOMADSList}}.
    Defaults to \code{NULL}.
 }
   \item{url}{
-   A URL to use instead of using the abbreviations in \code{NOMADSList}.
+   A URL to use instead of using the abbreviations in \code{\link{NOMADSList}}.
    Defaults to \code{NULL}.
 }
   \item{depth}{
@@ -30,10 +30,10 @@ CrawlModels(abbrev = NULL, url = NULL, depth = NULL, verbose = TRUE)
   }  
 }
 \details{
-This function calls \code{WebCrawler}, a recursive algorithm that discovers each link available in the URL provided.
+This function calls \code{\link{WebCrawler}}, a recursive algorithm that discovers each link available in the URL provided.
 It then searches each link in turn, and follows those links until it reaches a dead end.
 At that point, it returns the URL.
-For the model pages on the NOMADS web site, each dead end is a model instance that can be examined using \code{ParseModelPage} or have data retrieved from it using \code{GetGrib}.
+For the model pages on the NOMADS web site, each dead end is a model instance that can be examined using \code{\link{ParseModelPage}} or have data retrieved from it using \code{\link{GribGrab}}.
 }
 \value{
 \item{urls.out}{A list of web page addresses, each of which corresponds to a model instance.}

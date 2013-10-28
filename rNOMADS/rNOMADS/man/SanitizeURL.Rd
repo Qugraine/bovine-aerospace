@@ -7,7 +7,7 @@ Remove illegal URL characters
 An internal routine for replacing illegal URL character in level and variable names
 }
 \usage{
-SanitizeURL(bad.str)
+SanitizeURL(bad.strs)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -28,8 +28,8 @@ Daniel Bowman \email{daniel.bowman@unc.edu}
 
 \examples{
 
-bad.str <- c("I am full of ^ill=/\\egal characters")
-good.str <- SanitizeURL(bad.str)
+bad.strs <- c("I am full of ^ill=/\\\\egal characters")
+good.str <- SanitizeURL(bad.strs)
 print(good.str[1])
 }
 \keyword{ internal }
