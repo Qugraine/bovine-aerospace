@@ -1,4 +1,4 @@
-ReadGrib <- function(file.name, variables, levels = NULL) {
+ReadGrib <- function(file.name, levels, variables) {
     #This is a function to read forecast data from a Grib file
     #INPUTS
     #    FILE.NAME - Grib file name
@@ -47,7 +47,7 @@ ReadGrib <- function(file.name, variables, levels = NULL) {
     return(model.data)
 }
 
-ModelGrid <- function(model.data, variables = NULL, levels = NULL, model.domain = NULL) {
+ModelGrid <- function(model.data, levels = NULL, variables = NULL, model.domain = NULL) {
     #Transform model data array into a grid with dimensions levels x variables x lon range x lat range
     #This should reduce the size of the returned data by removing redundant information
     #INPUTS
