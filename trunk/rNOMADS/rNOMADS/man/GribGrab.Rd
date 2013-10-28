@@ -5,7 +5,7 @@ Download model data from the NOMADS server.
 }
 \description{
 This function interfaces with the programming API at \url{http://nomads.ncep.noaa.gov/} to download NOMADS model data.
-The available models (54 in total) can be viewed by calling \code{NOMADSList()} without arguments.
+The available models (54 in total) can be viewed by calling \code{\link{NOMADSList}} without arguments.
 The data arrives in grib (gridded binary) format that can be read with \code{\link{ReadGrib}}.
 }
 \usage{

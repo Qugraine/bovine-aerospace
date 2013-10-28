@@ -43,10 +43,11 @@ Daniel Bowman \email{daniel.bowman@unc.edu}
 }
 \note{
 The purpose of \code{rNOMADS} is to provide an interface to, and data extraction from, the NOMADS models.
-In general, the manipuation of the returned data is left up to the user.
+In general, the manipulation of the returned data is left up to the user.
 However, I did include \code{ModelGrid} in the hopes that it might be useful (or at least a starting point) for data manipulation.
 This function should work well for regularly-spaced lat/lon grids (such as the Global Forecast System).
-It will definitely not work for the North American Mesoscale models, as they are on a 12 kilometer grid (and thus the lat/lon spacing changes over the model).
+It will definitely not work for the North American Mesoscale models, as they are on a 12 kilometer grid (and thus the lat/lon spacing changes over the model).}
+
 \seealso{
 \code{\link{ReadGrib}}
 }
@@ -86,4 +87,4 @@ sprintf("\%.1f", max.temp) #Brrr!
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
-\keyword{  manip}
+\keyword{ manip}

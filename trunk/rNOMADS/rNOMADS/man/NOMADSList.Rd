@@ -1,7 +1,7 @@
 \name{NOMADSList}
 \alias{NOMADSList}
 \title{
-Models available to download through rNOMADS
+Models available for download through rNOMADS
 }
 \description{
 A list of abbreviations, names and URLs for the NOMADS models.
