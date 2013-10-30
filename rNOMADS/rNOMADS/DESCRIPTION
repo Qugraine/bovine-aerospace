@@ -11,5 +11,5 @@ Description: An interface to the National Oceanic and Atmospheric Administration
 License: GPL (>= 3)
 URL: http://code.google.com/p/bovine-aerospace/ (subversion repository)  http://www.unc.edu/~haksaeng/rNOMADS/rNOMADS_examples.pdf (some examples)
 Packaged: 2013-10-28 12:00:00 UTC; bowman
-Author: Daniel Bowman [aut, cre]
-Maintainer: Daniel Bowman <daniel.bowman@unc.edu>
+Author: Daniel C. Bowman [aut, cre]
+Maintainer: Daniel C. Bowman <daniel.bowman@unc.edu>

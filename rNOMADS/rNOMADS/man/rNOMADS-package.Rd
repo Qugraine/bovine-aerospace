@@ -18,7 +18,7 @@ Date: \tab 2013-10-28\cr
 License: \tab GPL v3\cr
 }}
 \author{
-Daniel Bowman \email{daniel.bowman@unc.edu}
+Daniel C. Bowman \email{daniel.bowman@unc.edu}
 }
 \references{
 NOMADS website: \cr
