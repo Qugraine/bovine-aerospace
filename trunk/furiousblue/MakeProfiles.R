@@ -14,10 +14,8 @@ library(rNOMADS) #Interface with GFS forecast
 library(MBA) #Spatial interpolation routines
 library(GEOmap) #Map projection
 
-levels <- c("1000 mb", "100 mb")
-variables <- c("TMP", "UGRD")
+variables <- c("TMP", "HGT")
 hrs.ahead <- 0
-fcst.date <- Sys.time() + 3600 * hrs.ahead
 model.domain <- c(-80, -79, 36.5, 35.5) #Research triangle region
 lat.res <- 0.5 #Resolution in degrees latitude
 lon.res <- 0.5 #Resolution in degrees longitude
@@ -26,22 +24,44 @@ center.point <- c(mean(model.domain[1:2]), mean(model.domain[3:4])) #Projection 
 
 point.coords <- c(-79.39, 35.51) #Initial coordinates of point of interest
 
+#Get GFS 0.5 forecast data
+urls.out <- CrawlModels(abbrev = "gfs0.5", depth = 1)
+model.parameters <- ParseModelPage(urls.out[1])
+
+#Get all pressure levels
+levels <- gsub("_", " ", model.parameters$levels[grep("\\d+_mb$", model.parameters$levels)])
+
+#Get model run date, convert to POSIX date 
+run.date <- str_match_all(urls.out[1], "\\d{10}")[[1]][1,1]
+d.vec <- strsplit(run.date, split = "")[[1]]
+nice.run.date <- strftime(paste0(paste(d.vec[1:4], collapse = ""), "-", paste(d.vec[5:6], collapse = ""),
+    "-", paste(d.vec[7:8], collapse = ""), " ", paste(d.vec[9:10], collapse = ""), ":00:00", sep = ""))
+
+#Figure out time difference between now and model run date
+hr.shift <- as.numeric(difftime(as.POSIXlt(Sys.time(), tz = "GMT"), as.POSIXlt(nice.run.date, tz = "GMT")))
+
+#Figure out the forward (in the future) forecast and back (in the past) forecast using hr.shift
+pred.hrs <- as.numeric(unlist(str_match_all(model.parameters$pred, "\\d{2,3}$")))
+hr.diff <- pred.hrs - hr.shift
+
 #Get back forecast
-backinfo <- GribGrab(levels, variables, which.fcst = "back", 
-   fcst.date = fcst.date, file.name = "fcst_back.grb",
-   model.domain = model.domain)
+back.pred <- model.parameters$pred[which(max(hr.diff[which(hr.diff <=0)]) == hr.diff)]
+fore.pred <- model.parameters$pred[which(min(hr.diff[which(hr.diff > 0)]) == hr.diff)]
+
+#Get back forecast
+back.file <- GribGrab(urls.out[1], back.pred, levels, variables, 
+   file.name = "fcst_back.grb", model.domain = model.domain)
 
 #Get forward forecast
-foreinfo <- GribGrab(levels, variables, which.fcst = "forward",
-   fcst.date = fcst.date, file.name = "fcst_fore.grb",
-   model.domain = model.domain)
+fore.file <- GribGrab(urls.out[1], fore.pred, levels, variables,
+   file.name = "fcst_fore.grb", model.domain = model.domain)
 
 ## Make into model grid
-back.data <- ReadGrib(backinfo$file.name, variables, levels)
-fore.data <- ReadGrib(foreinfo$file.name, variables, levels)
+back.data <- ReadGrib(back.file, levels, variables)
+fore.data <- ReadGrib(fore.file, levels, variables)
 
-back.grd <- ModelGrid(back.data, lat.res, lon.res)
-fore.grd <- ModelGrid(fore.data, lat.res, lon.res)
+back.grd <- ModelGrid(back.data)
+fore.grd <- ModelGrid(fore.data)
 
 ## REGRID FOR HIGHER RESOLUTION
 source("HighResLayers.R")
