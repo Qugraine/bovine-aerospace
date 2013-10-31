@@ -1,0 +1,2 @@
+a <-
+function() { return("foo")}
