@@ -14,11 +14,9 @@ library(rNOMADS) #Interface with GFS forecast
 library(MBA) #Spatial interpolation routines
 library(GEOmap) #Map projection
 
-variables <- c("TMP", "HGT")
+variables <- c("TMP", "HGT", "UGRD", "VGRD")
 hrs.ahead <- 0
 model.domain <- c(-80, -79, 36.5, 35.5) #Research triangle region
-lat.res <- 0.5 #Resolution in degrees latitude
-lon.res <- 0.5 #Resolution in degrees longitude
 cart.res <- 2000 #Cartesian resolution of interpolated data, in meters
 center.point <- c(mean(model.domain[1:2]), mean(model.domain[3:4])) #Projection point
 
@@ -44,9 +42,13 @@ hr.shift <- as.numeric(difftime(as.POSIXlt(Sys.time(), tz = "GMT"), as.POSIXlt(n
 pred.hrs <- as.numeric(unlist(str_match_all(model.parameters$pred, "\\d{2,3}$")))
 hr.diff <- pred.hrs - hr.shift
 
-#Get back forecast
+#Get forecasts
 back.pred <- model.parameters$pred[which(max(hr.diff[which(hr.diff <=0)]) == hr.diff)]
 fore.pred <- model.parameters$pred[which(min(hr.diff[which(hr.diff > 0)]) == hr.diff)]
+
+#Get time weighted average for profiles
+weight.avg <- abs(hr.shift - c(as.numeric(str_match_all(back.pred, "\\d+")[[1]][3]),
+    as.numeric(str_match_all(fore.pred, "\\d+")[[1]][3])))
 
 #Get back forecast
 back.file <- GribGrab(urls.out[1], back.pred, levels, variables, 
@@ -68,21 +70,27 @@ source("HighResLayers.R")
 back.grd.int <- MakeLayerGrids(back.grd, cart.res, center.point)
 fore.grd.int <- MakeLayerGrids(fore.grd, cart.res, center.point)
 
-#PROJECT LOCATION OF POINT OF INTEREST
-#Note - need to provide cartesian grid here to figure out where object is
+#Make weighted profile by date
+combined.profile <- CombinedProfile(point.coords, back.grd.int, fore.grd.int, weight.avg) 
+
+#Interpolate
+i.p   <- splinefun(combined.profile[,1], rev(as.numeric(unlist(str_match_all(levels, "\\d+")))), method = "natural")
+i.tmp <- splinefun(combined.profile[,1], combined.profile[,2], method = "natural")
+i.wu  <- splinefun(combined.profile[,1], combined.profile[,3], method = "natural")
+i.wv  <- splinefun(combined.profile[,1], combined.profile[,4], method = "natural")
+
+#BEGIN THE TRACKING LOOP
+s <- 0 #Elapsed seconds
+e <- 1000 #Elevation (m)
+deltat <- 1 #Time step
+
 point.xy <- GLOB.XY(point.coords[2], point.coords[1], back.grd.int$projection)
 
-##GET PROFILE FOR POINT OF INTEREST
+p.pos <- c(point.xy$x, point.xy$y) #Position of particle
+for(k in seq_len(600)) {
+    s <- s + 1
+    p.pos[1] <- p.pos[1] + i.wu(e) * deltat
+    p.pos[2] <- p.pos[2] + i.wv(e) * deltat
+}
 
-#Find which node our point is located in by minimizing absolute distance
-
-abs.x.dist <- abs(point.xy$x - back.grd.int$x)
-abs.y.dist <- abs(point.xy$y - back.grd.int$y)
-
-#Find index of that node
-x.point.ind <- which(abs.x.dist == min(abs.x.dist))
-y.point.ind <- which(abs.y.dist == min(abs.y.dist))
-
-#Get back and fore data for that point
-back.profile <- back.grd.int$z[, , x.point.ind, y.point.ind]
-fore.profile <- fore.grd.int$z[, , x.point.ind, y.point.ind]
+point.latlon <- XY.GLOB(p.pos[1]/1000, p.pos[2]/1000, back.grd.int$projection)
