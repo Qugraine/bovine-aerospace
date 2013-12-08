@@ -1,7 +1,7 @@
 library(rNOMADS) #Interface with GFS forecast
 library(MBA) #Spatial interpolation routines
 library(GEOmap) #Map projection
-library(R2G2)
+library(R2G2) #Write KML
 
 BuildAtmosphere <- function(model.date, model.center.point, model.span, model.res, variables, levels) {
     #This function prepares the model grids for interpolation.
@@ -15,17 +15,21 @@ BuildAtmosphere <- function(model.date, model.center.point, model.span, model.re
     #    LEVELS - Levels to get from NOMADS
 
     #Set up model domain
-
+    model.ind <- 1
     model.domain <- c(model.center.point[1] - model.span/2, 
         model.center.point[1] + model.span/2,
         model.center.point[2] + model.span/2,
         model.center.point[2] - model.span/2)
     #Read NOMADS server 
-    urls.out <- CrawlModels(abbrev = "gfs0.5", depth = 1)
+    urls.out <- CrawlModels(abbrev = "gfs0.5", depth = 2)
     model.parameters <- ParseModelPage(urls.out[1])
+    if(length(model.parameters$pred) == 0) { #If the GFS model has no data yet, go to the previous one
+        model.parameters <- ParseModelPage(urls.out[2])
+        model.ind <- 2
+    }
   
     #Get model run date, convert to POSIX date 
-    run.date <- str_match_all(urls.out[1], "\\d{10}")[[1]][1,1]
+    run.date <- str_match_all(urls.out[model.ind], "\\d{10}")[[1]][1,1]
     d.vec <- strsplit(run.date, split = "")[[1]]
     nice.run.date <- strftime(paste0(paste(d.vec[1:4], collapse = ""), 
         "-", paste(d.vec[5:6], collapse = ""), "-", paste(d.vec[7:8], collapse = ""), 
@@ -44,11 +48,11 @@ BuildAtmosphere <- function(model.date, model.center.point, model.span, model.re
    fore.pred <- model.parameters$pred[which(min(hr.diff[which(hr.diff > 0)]) == hr.diff)]
 
    #Get back forecast
-   back.file <- GribGrab(urls.out[1], back.pred, levels, variables,
+   back.file <- GribGrab(urls.out[model.ind], back.pred, levels, variables,
        file.name = "fcst_back.grb", model.domain = model.domain)
 
    #Get forward forecast
-   fore.file <- GribGrab(urls.out[1], fore.pred, levels, variables,
+   fore.file <- GribGrab(urls.out[model.ind], fore.pred, levels, variables,
       file.name = "fcst_fore.grb", model.domain = model.domain)
 
    ## Make into model grid
@@ -96,8 +100,8 @@ BuildProfile <- function(object.coords, grd.int, weight.avg) {
     y.point.ind <- which(abs.y.dist == min(abs.y.dist))
 
     #Get back and fore data for that point
-    back.profile <- grd.int[[1]]$z[, , x.point.ind, y.point.ind]
-    fore.profile <- grd.int[[2]]$z[, , x.point.ind, y.point.ind]
+    back.profile <- grd.int[[1]]$z[, , y.point.ind, x.point.ind]
+    fore.profile <- grd.int[[2]]$z[, , y.point.ind, x.point.ind]
 
     #Make weighted profile by date
     atmos.profile <- (back.profile * weight.avg[1] + fore.profile * weight.avg[2])/sum(weight.avg)
@@ -120,7 +124,7 @@ MakeLayerGrids <- function(fcst.grid, resolution, center.point) {
 
     #Convert lat/lon grid to cartesian
 
-    xygrd <- GLOB.XY(fcst.grid$y, fcst.grid$x, proj)
+    xygrd <- GLOB.XY(fcst.grid$lat, fcst.grid$lon, proj)
 
     x.cells <- ceiling(((max(xygrd$y) - min(xygrd$y)) * 1000) / resolution)
     y.cells <- ceiling(((max(xygrd$x) - min(xygrd$x)) * 1000) / resolution)
@@ -129,10 +133,10 @@ MakeLayerGrids <- function(fcst.grid, resolution, center.point) {
     y.vec <- vector()
 
     for(k in seq_len(length(xygrd$x))) {
-        x.vec <- append(x.vec, rep(xygrd$x[k], 3))
+        x.vec <- append(x.vec, rep(xygrd$x[k], length(fcst.grid$variables)))
     }
 
-    y.vec <- append(y.vec, rep(xygrd$y, 3))
+    y.vec <- append(y.vec, rep(xygrd$y, length(fcst.grid$variables)))
    #Define new spatially interpolated model structure
     
     interp.grid <- fcst.grid
@@ -156,36 +160,36 @@ MakeLayerGrids <- function(fcst.grid, resolution, center.point) {
 #Let's fly something! 
 
 #Define model parameters 
-model.span <- 1 #degrees to span
+model.span <- 2 #degrees to span
 model.res <- 2000 #Resolution of interpolated grid
-grid.tol <- 10000 #Distance from center point that triggers rebuilding of model (m)
+model.tol <- 0.49 #Distance from center point that triggers rebuilding of model (degrees) 
 profile.tol <- c(600, 2000) #Rebuild atmospheric profile every X seconds or Y meters of drift from  point
 variables <- c("TMP", "HGT", "UGRD", "VGRD")
 levels <- paste(c(1, 2, 3, 5, 7, 10, 20, 30, 50, 70, seq(100, 1000, by = 25)), "mb")
 
 #Define launch date and location
 model.date <- as.POSIXlt(Sys.time() + 5, tz = "GMT") #Get data for this date
-object.coords <- c(-79.39, 35.51, 1000) #Initial coordinates of point of interest
-time.limit <- 3600 * 3 #How many seconds to fly
+object.coords <- c(-79.25, 35.25, 1000) #Initial coordinates of point of interest
+time.limit <- 3600 * 24 #How many seconds to fly
 
 #Get this party started
 
 #BALLOON MODEL PARAMETERS
 t <- 0
 deltat <- 60 #Time step (seconds)
-grid.tol.tmp <- Inf 
+reload.model <- TRUE
 tdiff.back <- Inf
 tdiff.fore <- Inf
 balloon <- list(lat = c(), lon = c(), elev = c(), time = c())
 while(t < time.limit) { #Time limit
 
     #If the particle is at the edge of the model, or we are exiting the time domain
-    #Project to max/min of model to test for tolerance, not of "center point"
-    if(grid.tol.tmp > grid.tol | (tdiff.back + tdiff.fore) > 3) { 
+    if(reload.model | (tdiff.back + tdiff.fore) > 3) { 
         print("Downloading model...")
         grd.int <- BuildAtmosphere(model.date, object.coords, model.span, model.res, variables, levels)
         profile.tol.tmp <- c(Inf, Inf)  #Force profile rebuild
         cart.pos <- c(0, 0, object.coords[3])
+        reload.model <- FALSE
     }
     
     #Rebuild the atmospheric profiles if necessary
@@ -206,7 +210,7 @@ while(t < time.limit) { #Time limit
    #Distance from center of profile
    cart.pos[1] <- cart.pos[1] + i.wu(cart.pos[3]) * deltat #East - west movement
    cart.pos[2] <- cart.pos[2] + i.wv(cart.pos[3]) * deltat #North - south movement 
-   cart.pos[3] <- cart.pos[3] + 10 * t #Elevation gain or loss
+   cart.pos[3] <- cart.pos[3] #Elevation gain or loss
 
    #Latitude and longitude of object
    obj.tmp <- XY.GLOB((cart.pos[1] + i.wu(cart.pos[3]) * deltat)/1000, (cart.pos[2] + i.wv(cart.pos[3]) * deltat) / 1000, grd.int[[1]]$projection)
@@ -217,10 +221,17 @@ while(t < time.limit) { #Time limit
    t <- t + deltat
    model.date <- model.date + deltat
    profile.tol.tmp <- c(profile.tol.tmp[1] + deltat, sqrt((profile.cart.pos[1] - cart.pos[1])^2 + (profile.cart.pos[2] - cart.pos[2])^2))
+   #Correct for west longitude
+   if(object.coords[1] > 180) {
+       west.lon <- object.coords[1] - 360
+   } else {
+       west.lon <- object.coords[1] 
+   }
 
    #Make sure we are still in the model domain
-   model.xy <- GLOB.XY(object.coords[2], object.coords[1], grd.int[[1]]$projection)
-   grid.tol.tmp <- sqrt(model.xy$x^2 + model.xy$y^2)
+   if(abs(west.lon - mean(grd.int[[2]]$lon)) > model.tol | abs(object.coords[2] - mean(grd.int[[2]]$lat)) > model.tol) {
+       reload.model <- TRUE
+   }
 
    #Append data to balloon list
     balloon$lat <- append(balloon$lat, object.coords[2])
@@ -231,6 +242,3 @@ while(t < time.limit) { #Time limit
     coords <- cbind(balloon$lon - 360, balloon$lat)
     Dots2GE(coords, balloon$time, goo = "test_trajectory.kml")
 }
-
-coords <- cbind(balloon$lon - 360, balloon$lat)
-Dots2GE(coords, balloon$time, goo = "test_trajectory.kml")
