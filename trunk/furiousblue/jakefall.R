@@ -375,7 +375,7 @@ levels <- paste(c(1, 2, 3, 5, 7, 10, 20, 30, 50, 70, seq(100, 1000, by = 25)), "
 
 #Define launch date and location
 model.date <- as.POSIXlt(Sys.time() + 5, tz = "GMT") #Get data for this date
-object.coords <- c(-79.25, 35.25, 1000) #Initial coordinates of point of interest
+object.coords <- c(-106.912295, 34.064383, 5000) #Initial coordinates of point of interest
 time.limit <- 3600 * 24 #How many seconds to fly
 
 #Get this party started
@@ -473,7 +473,7 @@ while(t < time.limit) { #Time limit
     balloon$lon <- append(balloon$lon, object.coords[1])
     balloon$elev <- append(balloon$elev, object.coords[3])
     balloon$time <- append(balloon$time, t)
-    print(object.coords)
+    print(paste(object.coords, model.date))
     coords <- cbind(balloon$lon - 360, balloon$lat)
     Dots2GE(coords, balloon$time, goo = "test_trajectory.kml")
 }
