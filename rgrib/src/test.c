@@ -29,8 +29,8 @@
          ierr=g2_info(cgrib,listsec0,listsec1,&numfields,&numlocal);
          for (n=0;n<numfields;n++) {
             ierr=g2_getfld(cgrib,n+1,unpack,expand,&gfld);
+            printf ("%g2int", gfld->idsect[10]);
             g2_free(gfld);
-            printf ("\nfrank\n");
          }
          free(cgrib);
     }
