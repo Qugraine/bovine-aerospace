@@ -56,13 +56,13 @@ AscentRe <- function(ma, pa, Vb, T, va, r) {
     mu0 <- 0.00001827 #Reference viscosity (pa s)
     To <- 291.15 #Reference temperature (K)
     C <- 120 #Sutherland's constant for air
-    R <- 287.058 #Gas constant for air
-   
+    R <- 8.3145 #Universal gas constant
+ 
     dm <- (pa/(R*T))*ma #Air density
 
     mu <- mu0 * ((To + C)/(T + C)) * (T/To)^(1.5)
 
-    invisible(dm*va*r*2.0)/mu #Reynold's number
+    invisible(dm*va*r*2.0/mu) #Reynold's number
 }
 
 AscentVelocity <- function(mi, Mp, mp, ma, pa, po, acd, max.radius, T.ambient, T.diff = 0, T.interior = NULL, sealed = TRUE) {
@@ -86,12 +86,12 @@ AscentVelocity <- function(mi, Mp, mp, ma, pa, po, acd, max.radius, T.ambient, T
     if(T.diff != 0 & !is.null(T.interior)) {
          warning("A temperature difference from ambient and a fixed internal temperature are both defined for the balloon.  The fixed interior temperature shall override the temperature difference.")
     }
-
+    
     R <- 8.3145 #Universal gas constant
     g <- 9.81 #Gravitational acceleration
 
     if(is.null(T.interior)) {
-        rv <- BalloonSphere(Mp, pa, po, T + T.diff)
+        rv <- BalloonSphere(Mp, pa, po, T.ambient + T.diff)
     } else {
         rv <- BalloonSphere(Mp, pa, po, T.interior)
     }
@@ -101,13 +101,13 @@ AscentVelocity <- function(mi, Mp, mp, ma, pa, po, acd, max.radius, T.ambient, T
         rv$V <- (4/3)* pi * max.radius ^ 3
     }
 
-    disp.mass=((pa*rv$V)/(R*T))*ma #Mass of displaced fluid
+    disp.mass=((pa*rv$V)/(R*T.ambient))*ma #Mass of displaced fluid
 
     if(sealed) {
         prop.mass=Mp*mp #Mass of lift gas
     } else {
         if(is.null(T.interior)) {
-            prop.mass <- ((pa*rv$V)/(R*(T + T.diff)))*mp
+            prop.mass <- ((pa*rv$V)/(R*(T.ambient + T.diff)))*mp
         } else {
             prop.mass <- ((pa*rv$V)/(R*(T.interior)))*mp
         }
@@ -115,11 +115,11 @@ AscentVelocity <- function(mi, Mp, mp, ma, pa, po, acd, max.radius, T.ambient, T
 
     L <- (disp.mass-prop.mass-mi)*g #Net lift force
 
-    A <- pi*rv$V^2 #Cross sectional area of balloon
+    A <- pi*rv$r^2 #Cross sectional area of balloon
 
     dm <- disp.mass/rv$V #Air density
     va <- sqrt((2*L)/(acd*dm*A))
-
+    print(c(Mp * mp, prop.mass, disp.mass, L, acd, dm, A, va)) 
     invisible(va) #Ascent velocity
 }
 
@@ -145,8 +145,8 @@ BalloonSphere <- function(Mp, pa, po, T) {#Get balloon dimensions
 
 
 
-    r <- (numerator/denominator)^(1/3) #Balloon radius (m)
-
+    r <- ((3 * V)/(4 * pi)) ^(1/3)
+    print(r)
     invisible(list(r = r, V = V))
 }
 
@@ -337,9 +337,9 @@ MolsFromLift <- function(mb, L, po, ma, mp) {
     #OUTPUTS
     #MP  how many mols of lift gas you have added to get measured lift
 
-    total_mass <- L+mb
+    total.mass <- L + mb
 
-    Mp <- total_mass/((ma/po)-mp)
+    Mp <- total.mass/((ma/po)-mp)
 
     invisible(Mp) #How many mols of lift gas you added to your balloon to get the measured lift
 }
@@ -375,7 +375,7 @@ levels <- paste(c(1, 2, 3, 5, 7, 10, 20, 30, 50, 70, seq(100, 1000, by = 25)), "
 
 #Define launch date and location
 model.date <- as.POSIXlt(Sys.time() + 5, tz = "GMT") #Get data for this date
-object.coords <- c(-106.912295, 34.064383, 5000) #Initial coordinates of point of interest
+object.coords <- c(-106.912295, 34.064383, 1702) #Initial coordinates of point of interest
 time.limit <- 3600 * 24 #How many seconds to fly
 
 #Get this party started
@@ -388,15 +388,15 @@ tdiff.back <- Inf
 tdiff.fore <- Inf
 
 #BALLOON PARAMETERS
-mb<-0.6 #Mass of envelope (kg)
-L<-2  #Net lift (kg)
-po<-1.06 #Overpressure (unitless)
+mb<-0.8 #Mass of envelope (kg)
+L<- 2.2 #Net lift before instrument package is added (kg)
+po<-1.0 #Overpressure (unitless)
 ma<-0.02897 #Molar mass of dry air
 mp<-0.004002602 #Molar mass of propellant gas
-mi<-1.3 #Mass of payload
+mi<- 2 #Mass of payload
 dcd<-1.5 #Parachute coefficient of drag
 rp<-0.762 #Parachute radius
-max.radius<-3.05 #Balloon burst radius
+max.radius<-3.5 #Balloon burst radius
 T.diff <- 0 #Difference in temperature between balloon and surroundings (K)
 sealed <- TRUE #Balloon does not vent to atmosphere
 
@@ -409,7 +409,7 @@ acd <- 0.5
 va <- 5
 for (k in seq_len(25)) {
         rv=BalloonSphere(Mp, pa, 1.1, T)
-        va=AscentVelocity(mi, Mp, mp, ma, pa, po, acd, max.radius, T.ambient)
+        va=AscentVelocity(mi, Mp, mp, ma, pa, po, acd, max.radius, T)
         Re=AscentRe(ma, pa, rv$V, T, va, rv$r)
         acd=AscentCd(Re)
 }
@@ -445,7 +445,18 @@ while(t < time.limit) { #Time limit
    #Distance from center of profile
    cart.pos[1] <- cart.pos[1] + i.wu(cart.pos[3]) * deltat #East - west movement
    cart.pos[2] <- cart.pos[2] + i.wv(cart.pos[3]) * deltat #North - south movement 
-   cart.pos[3] <- cart.pos[3] #Elevation gain or loss
+
+   #Ascent rate calcs
+   T.ambient  <- i.tmp(cart.pos[3])
+   pa <- i.p(cart.pos[3]) * 10
+   rv <- BalloonSphere(Mp, pa, po, T.ambient) #Calculate balloon size
+   if (rv$r > max.radius) { #Balloon pops if it goes too high
+       break
+   }
+   Re <- AscentRe(ma, pa, rv$V, T.ambient, va, rv$r) #Calculate Reynold's number
+   acd <- AscentCd(formula = "smoothsphere") #Calculate ascent coefficient of drag
+   va <- AscentVelocity(mi, Mp, mp, ma, pa, po, acd, max.radius, T.ambient, T.diff = T.diff) #Calculate ascent rate
+   cart.pos[3] <- cart.pos[3] + va * deltat #Elevation gain or loss
 
    #Latitude and longitude of object
    obj.tmp <- XY.GLOB((cart.pos[1] + i.wu(cart.pos[3]) * deltat)/1000, (cart.pos[2] + i.wv(cart.pos[3]) * deltat) / 1000, grd.int[[1]]$projection)
@@ -473,8 +484,7 @@ while(t < time.limit) { #Time limit
     balloon$lon <- append(balloon$lon, object.coords[1])
     balloon$elev <- append(balloon$elev, object.coords[3])
     balloon$time <- append(balloon$time, t)
-    print(paste(object.coords, model.date))
-    coords <- cbind(balloon$lon - 360, balloon$lat)
-    Dots2GE(coords, balloon$time, goo = "test_trajectory.kml")
+    coords <- cbind(balloon$lon - 360, balloon$lat, balloon$elev)
+    PolyLines2GE(coords, goo = "test_trajectory.kml")
 }
 }
