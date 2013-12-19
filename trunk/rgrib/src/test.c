@@ -1,7 +1,6 @@
 //compilation command: gcc test.c libgrib2c.a -lm -o final
 // the makefile makes the .a
-//having some errors involving a PNG file for some reason - this needs to be dealt with
-
+//Currently returning values...need to figure out where the actual data is!!
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -29,7 +28,7 @@
          ierr=g2_info(cgrib,listsec0,listsec1,&numfields,&numlocal);
          for (n=0;n<numfields;n++) {
             ierr=g2_getfld(cgrib,n+1,unpack,expand,&gfld);
-            printf ("%g2int", gfld->idsect[10]);
+            printf ("%i\n", *gfld->fld);
             g2_free(gfld);
          }
          free(cgrib);
