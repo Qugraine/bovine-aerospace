@@ -435,7 +435,7 @@ while(t < time.limit) { #Time limit
         tdiff.fore <- abs(as.numeric(difftime(as.POSIXlt(grd.int[[2]]$fcst.date, tz = "GMT"), model.date, units = "hours")))
         atmos.profile <- BuildProfile(object.coords, grd.int, c(tdiff.back, tdiff.fore))
         #Interpolate
-        i.p   <- splinefun(atmos.profile[,1], rev(as.numeric(unlist(str_match_all(levels, "\\d+")))), method = "natural")
+        i.p   <- splinefun(atmos.profile[,1], 100 * rev(as.numeric(unlist(str_match_all(levels, "\\d+")))), method = "natural")
         i.tmp <- splinefun(atmos.profile[,1], atmos.profile[,2], method = "natural")
         i.wu  <- splinefun(atmos.profile[,1], atmos.profile[,3], method = "natural")
         i.wv  <- splinefun(atmos.profile[,1], atmos.profile[,4], method = "natural")
@@ -448,7 +448,7 @@ while(t < time.limit) { #Time limit
 
    #Ascent rate calcs
    T.ambient  <- i.tmp(cart.pos[3])
-   pa <- i.p(cart.pos[3]) * 10
+   pa <- i.p(cart.pos[3])
    rv <- BalloonSphere(Mp, pa, po, T.ambient) #Calculate balloon size
    if (rv$r > max.radius) { #Balloon pops if it goes too high
        break
