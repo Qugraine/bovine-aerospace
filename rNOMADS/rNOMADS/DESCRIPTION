@@ -5,7 +5,8 @@ Version: 1.2.0
 Date: 2013-10-28
 Authors@R: c(person(given="Daniel C.",family="Bowman", role=c("aut", "cre"),
         email="daniel.bowman@unc.edu"))
-Depends: R (>= 3.0.2), scrapeR (>= 0.1.6), stringr (>= 0.6.2), fields (>= 6.7.6)
+Depends: R (>= 3.0.2)
+Imports: scrapeR (>= 0.1.6), stringr (>= 0.6.2), fields (>= 6.7.6), XML (>= 3.98.1.1)
 Suggests: GEOmap (>= 2.1)
 Description: An interface to the National Oceanic and Atmospheric Administration's Operational Model Archive and Distribution System (NOMADS) that allows R users to quickly and efficiently download global and regional weather model data for processing.  rNOMADS currently supports 54 models, ranging from global weather data to an altitude of 40 km, to high resolution regional weather models, to wave and sea ice models. rNOMADS uses an external series of routines called wgrib2 to read the model data into R; get wgrib2 at http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/. Future versions of rNOMADS will have a native data reader.
 License: GPL (>= 3)
