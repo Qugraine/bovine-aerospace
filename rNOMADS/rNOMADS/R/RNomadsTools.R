@@ -27,49 +27,46 @@ AtmosphericProfile <- function(variables, lon, lat, forecast.date, levels = NULL
 
    model.to.get <- GetClosestGFSForecasts(forecast.date, model.date, verbose = verbose)
    model.domain <- c(lon, lon, lat, lat) + c(-1, 1, 1, -1) * grid.resolution + c(-1, 1, 1, -1) * 0.1 * grid.resolution
-
+   
+   if(spatial.average) {
+      spatial.average.method <- "Multilevel B-Splines using MBA::mba.points"
+   } else {
+      spatial.average.method <- "Nearest Node"
+   }
    if(!temporal.average) {
       if(abs(model.to.get$back.hr) < abs(model.to.get$fore.hr)) {
           pred <- model.to.get$back.forecast
       } else {
           pred <- model.to.get$fore.forecast
       }
+
       forecast.used <- pred
       grib.info <- GribGrab(model.to.get$model.url, pred, levels, variables, model.domain = model.domain)
       grib.data <- ReadGrib(file.path(grib.info$local.dir, grib.info$file.name), levels, variables)
       gridded.data <- ModelGrid(grib.data)
-
-      profile.data <- array(rep(0, length(gridded.data$variables) * length(gridded.data$levels)),
-          dim = c(length(gridded.data$levels), length(gridded.data$variables)))
-      #Project to Cartesian grid
-      lons <- t(array(rep(gridded.data$x, length(gridded.data$y)), dim = dim(gridded.data$z)[3:4]))
-      lats <- array(rep(rev(gridded.data$y), length(gridded.data$x)), dim = dim(gridded.data$z)[3:4]) 
-      proj <- GEOmap::setPROJ(type = 2, LAT0 = lat, LON0 = lon)
-      cart.pts <- GEOmap::GLOB.XY(as.vector(lats), as.vector(lons), proj)
-      cart.dist <- array(sqrt(cart.pts$x^2 + cart.pts$y^2), dim = c(length(gridded.data$x), length(gridded.data$y)))
-      if(spatial.average) {  #Average of 4 nearest points
-          for(k in length(gridded.data$levels)) {
-              for(j in length(gridded.data$variables)) {
-                  layer.img <- cbind(cart.pts$x, cart.pts$y, as.vector(gridded.data$z[1,1,,]))
-                  profile.data[j, k] <- MBA::mba.points(layer.img, cbind(0, 0))
-              }
-          }
-          spatial.average.method <- "Multilevel B-Splines using MBA::mba.points"
-      } else { #Nearest grid node
-          node.ind <- which(cart.dist == min(cart.dist), arr.ind = TRUE)
-          profile.data <- gridded.data$z[,,node.ind[1], node.ind[2]]
-          spatial.average.method <- "Nearest Node"
-          
-      }
+      profile.data <- InternalBuildProfile(gridded.data, lon, lat, spatial.average)
       temporal.average.method <- "Nearest Forecast"
    } else {
+      #Get back forecast
+      grib.info <- GribGrab(model.to.get$model.url, model.to.get$back.forecast, levels, variables, model.domain = model.domain)
+      grib.data <- ReadGrib(file.path(grib.info$local.dir, grib.info$file.name), levels, variables)
+      gridded.data <- ModelGrid(grib.data)
+      back.profile.data <- InternalBuildProfile(gridded.data, lon, lat, spatial.average)
+      #Get foreward forecast
+      grib.info <- GribGrab(model.to.get$model.url, model.to.get$fore.forecast, levels, variables, model.domain = model.domain)
+      grib.data <- ReadGrib(file.path(grib.info$local.dir, grib.info$file.name), levels, variables)
+      gridded.data <- ModelGrid(grib.data)
+      fore.profile.data <- InternalBuildProfile(gridded.data, lon, lat, spatial.average)
+      #Do a weighted average
+      scale <- 1 - abs(c(model.to.get$back.hr, model.to.get$fore.hr)) / sum(abs(c(model.to.get$back.hr, model.to.get$fore.hr)))
+      profile.data <- back.profile.data * scale[1] + fore.profile.data * scale[2] 
       forecast.used <- c(model.to.get$back.forecast, model.to.get$fore.forecast)
       temporal.average.method <- "Weighted Average Between Forecasts"
    }
 
    profile <- list(profile.data = profile.data, spatial.averaging = spatial.average.method,
-       temporal.averaging = temporal.average.method, variables = variables,
-       levels = levels, model.date = model.date, forecast = forecast.used, model = "GFS0.5",
+       temporal.averaging = temporal.average.method, variables = gridded.data$variables,
+       levels = gridded.data$levels, model.date = model.to.get$model.run.date, forecast = forecast.used, model = "GFS0.5",
        date = forecast.date)
        
 }
@@ -146,7 +143,39 @@ GetClosestGFSForecasts <- function(forecast.date, model.date = "latest", verbose
    return(list(model.url = url.to.use, model.run.date = nice.run.date, back.forecast = back.forecast, fore.forecast = fore.forecast, back.hr = back.hr, fore.hr = fore.hr))
 }
 
-InternalBuildProfile <- function(
+InternalBuildProfile <- function(gridded.data, lon, lat, spatial.average) {
+    #This function builds an atmospheric profile, performing spatial interpolation if requested
+    #INPUTS
+    #    GRIDDED.DATA - Data structure returned by ModelGrid
+    #    LON - Longitude of point of interest
+    #    LAT - Latitude of point of interest
+    #    SPATIAL.AVERAGE - Boolean determining whether to get nearest node value (FALSE) or interpolate using b-splines (TRUE)
+    #OUTPUTS
+    #    PROFILE.DATA - A levels x variables matrix with atmospheric data for given point
+    
+    profile.data <- array(rep(0, length(gridded.data$variables) * length(gridded.data$levels)),
+        dim = c(length(gridded.data$levels), length(gridded.data$variables)))
+    #Project to Cartesian grid
+    lons <- t(array(rep(gridded.data$x, length(gridded.data$y)), dim = dim(gridded.data$z)[3:4]))
+    lats <- array(rep(rev(gridded.data$y), length(gridded.data$x)), dim = dim(gridded.data$z)[3:4])
+    proj <- GEOmap::setPROJ(type = 2, LAT0 = lat, LON0 = lon)
+    cart.pts <- GEOmap::GLOB.XY(as.vector(lats), as.vector(lons), proj)
+    cart.dist <- array(sqrt(cart.pts$x^2 + cart.pts$y^2), dim = c(length(gridded.data$x), length(gridded.data$y)))
+    if(spatial.average) {  #Average of 4 nearest points
+        for(k in seq_len(length(gridded.data$levels))) {
+            for(j in seq_len(length(gridded.data$variables))) {
+                layer.img <- cbind(cart.pts$x, cart.pts$y, as.vector(gridded.data$z[k,j,,]))
+                profile.data[k, j] <- MBA::mba.points(layer.img, cbind(0, 0))[[1]][3]
+            }
+        }
+     } else { #Nearest grid node
+         node.ind <- which(cart.dist == min(cart.dist), arr.ind = TRUE)
+         profile.data <- gridded.data$z[,,node.ind[1], node.ind[2]]
+         spatial.average.method <- "Nearest Node"
+
+     }
+   return(profile.data)
+}
 
 ModelGrid <- function(model.data, levels = NULL, variables = NULL, model.domain = NULL) {
     #Transform model data array into a grid with dimensions levels x variables x lon range x lat range
