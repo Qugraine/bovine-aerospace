@@ -65,11 +65,11 @@ levels <- c("2 m above ground", "300 mb")
 variables <- c("TMP", "RH", "UGRD", "VGRD")
 
 #Download model file
-file.name <- GribGrab(urls.out[1], latest.pred, 
+grib.info <- GribGrab(urls.out[1], latest.pred, 
     levels, variables, verbose = FALSE)
 
 #Read the model file
-grb.data <- ReadGrib(file.name, levels, variables)
+grb.data <- ReadGrib(grib.info$file.name, levels, variables)
 
 #Make an array for quick indexing
 atmos <- ModelGrid(grb.data)
@@ -185,10 +185,10 @@ model.parameters <- ParseModelPage(urls.out[1])
 pred.6hr <- model.parameters$pred[grep("06$", model.parameters$pred)]
 
 
-file.name <- GribGrab(urls.out[1], pred.6hr, 
+grib.info <- GribGrab(urls.out[1], pred.6hr, 
     levels, variables, verbose = FALSE)
 
-grb.data <- ReadGrib(file.name, levels, variables)
+grb.data <- ReadGrib(grib.info$file.name, levels, variables)
 
 #Make an array for quick indexing
 atmos <- ModelGrid(grb.data)
@@ -315,11 +315,11 @@ model.domain <- c(-80, -79, 36.5, 35.5)
 
 #Get the data
 
-file.name <- GribGrab(urls.out, pred.now, levels, variables, 
+grib.info <- GribGrab(urls.out, pred.now, levels, variables, 
     model.domain = model.domain, verbose = FALSE)
 
 #Read the model file
-grb.data <- ReadGrib(file.name, levels, variables)
+grb.data <- ReadGrib(grib.info$file.name, levels, variables)
 
 #Make an array for quick indexing
 atmos <- ModelGrid(grb.data)

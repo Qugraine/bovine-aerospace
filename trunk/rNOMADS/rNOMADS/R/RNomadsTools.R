@@ -1,5 +1,6 @@
 #Functions for doing specific useful tasks with rNOMADS
-AtmosphericProfile <- function(variables, lon, lat, forecast.date, levels = NULL, model.date = "latest", spatial.average = TRUE, temporal.average = TRUE, verbose = TRUE) {
+
+AtmosphericProfile <- function(variables, lon, lat, forecast.date, levels = NULL, model.date = "latest", spatial.average = FALSE, temporal.average = FALSE, verbose = TRUE) {
    #Get an atmospheric profile using all available pressure levels, utilizing nearest neighbor interpolation and time weighted averaging if requested
    #INPUTS
    #    VARIABLES - Model variables to get for profile
@@ -12,7 +13,15 @@ AtmosphericProfile <- function(variables, lon, lat, forecast.date, levels = NULL
    #    SPATIAL.AVERAGE - Perform nearest neighbor interpolation for 4 grid nodes to get average profile at a specific point.  Default TRUE.  If FALSE, get data from nearest grid node.
    #    TEMPORAL.AVERAGE - Do a weighted average between forecasts to approximate the profile at a specific time. If FALSE, use closest forecast run.   
    #OUTPUTS
-   #    PROFILE - Table of pressures and requested variables
+   #    PROFILE.DATA - Table of pressures and requested variables
+   #    SPATIAL.AVERAGING - What kind of spatial interpolation was used, if any
+   #    TEMPORAL.AVERAGING - What kind of temporal averaging was used, if any
+   #    VARIABLES - Model variables, in the order presented in PROFILE.DATA
+   #    LEVELS - Model levels, in the order presented in PROFILE.DATA
+   #    MODEL.DATE - When the model was run
+   #    FORECAST - What forecast was used
+   #    MODEL - What weather model was used
+   #    DATE - What date was requested for the data
    #    FORECAST.USED - Which forecast(s) were used to calculate the profile
    #    NEAREST.MODEL.GRID - The location of the grid node nearest to the requested point
 
@@ -68,7 +77,7 @@ AtmosphericProfile <- function(variables, lon, lat, forecast.date, levels = NULL
        temporal.averaging = temporal.average.method, variables = gridded.data$variables,
        levels = gridded.data$levels, model.date = model.to.get$model.run.date, forecast = forecast.used, model = "GFS0.5",
        date = forecast.date)
-       
+   invisible(profile)       
 }
 
 
@@ -268,4 +277,51 @@ ModelGrid <- function(model.data, levels = NULL, variables = NULL, model.domain 
     }
 
     return(fcst.grid)
+}
+
+WindMagnitudeDirection <- function(lon, lat, forecast.date, variables = NULL, levels = NULL, model.date = "latest", spatial.average = FALSE, temporal.average = FALSE, verbose = TRUE) {
+   #Get wind magnitude and direction and optional other variables by running AtmosphericProfile then transforming wind appropriately.
+   #This function is intended to generate wind profiles for TEPHRA2.
+   #INPUTS
+   #    LON - Longitude
+   #    LAT - Latitude
+   #    FORECAST.DATE - What date you want the profile for, as a date/time object, in GMT
+   #    VARIABLES - Additional variables besides wind and height, if NULL,  just report wind and elevation
+   #    LEVELS - If not NULL, try and get data for the requested levels only.  If NULL, get all pressure levels
+   #    MODEL.DATE - Which model run to use, in YYYYMMDDHH, where HH is 00, 06, 12, 18.  Defaults to "latest", which means get the latest model available.
+   #        If MODEL.DATE is not "latest", rNOMADS will scan the entire directory, and this will take time. 
+   #    SPATIAL.AVERAGE - Perform nearest neighbor interpolation for 4 grid nodes to get average profile at a specific point.  Default TRUE.  If FALSE, get data from nearest grid node.
+   #    TEMPORAL.AVERAGE - Do a weighted average between forecasts to approximate the profile at a specific time. If FALSE, use closest forecast run.   
+   #OUTPUTS
+   #    PROFILE.DATA - Table of pressures and requested variables
+   #    SPATIAL.AVERAGING - What kind of spatial interpolation was used, if any
+   #    TEMPORAL.AVERAGING - What kind of temporal averaging was used, if any
+   #    VARIABLES - Model variables.  This will include height, wind magnitude, and wind azimuth, and potentially others if input VARIABLES is not NULL
+   #    LEVELS - Model levels, in the order presented in PROFILE.DATA
+   #    MODEL.DATE - When the model was run
+   #    FORECAST - What forecast was used
+   #    MODEL - What weather model was used
+   #    DATE - What date was requested for the data
+   #    FORECAST.USED - Which forecast(s) were used to calculate the profile
+   #    NEAREST.MODEL.GRID - The location of the grid node nearest to the requested point
+   
+   if(is.null(variables)) {
+       variables <- c("HGT", "UGRD", "VGRD")
+   } else {
+       variables <- unique(append(variables, c("HGT", "UGRD", "VGRD")))
+   }
+
+
+   profile <- AtmosphericProfile(variables, lon, lat, forecast.date, levels = levels, 
+       model.date = model.date, spatial.average = spatial.average, temporal.average = temporal.average, verbose = verbose)     
+
+   u.i <- which(profile$variables == "UGRD")
+   v.i <- which(profile$variables == "VGRD")
+
+   mag <- sqrt(profile$profile.data[,u.i]^2 + profile$profile.data[,v.i]^2)
+   tmp.az <- (180/pi) * atan2(profile$profile.data[,v.i], profile$profile.data[,u.i])
+   az <- tmp.az
+   az[tmp.az < 0] <- 360 + tmp.az[tmp.az < 0]
+   profile$wind <- cbind(profile$profile.data[,which(variables == "HGT")], mag, az)
+   invisible(profile)
 }
