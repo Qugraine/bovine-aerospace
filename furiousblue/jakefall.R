@@ -119,7 +119,6 @@ AscentVelocity <- function(mi, Mp, mp, ma, pa, po, acd, max.radius, T.ambient, T
 
     dm <- disp.mass/rv$V #Air density
     va <- sqrt((2*L)/(acd*dm*A))
-    print(c(Mp * mp, prop.mass, disp.mass, L, acd, dm, A, va)) 
     invisible(va) #Ascent velocity
 }
 
@@ -146,7 +145,6 @@ BalloonSphere <- function(Mp, pa, po, T) {#Get balloon dimensions
 
 
     r <- ((3 * V)/(4 * pi)) ^(1/3)
-    print(r)
     invisible(list(r = r, V = V))
 }
 
@@ -374,9 +372,9 @@ variables <- c("TMP", "HGT", "UGRD", "VGRD")
 levels <- paste(c(1, 2, 3, 5, 7, 10, 20, 30, 50, 70, seq(100, 1000, by = 25)), "mb")
 
 #Define launch date and location
-model.date <- as.POSIXlt(Sys.time() + 5, tz = "GMT") #Get data for this date
-object.coords <- c(-106.912295, 34.064383, 1702) #Initial coordinates of point of interest
-time.limit <- 3600 * 24 #How many seconds to fly
+model.date <- as.POSIXlt(Sys.time() + 38 * 3600, tz = "GMT") #Get data for this date
+object.coords <- c(-106.912295, 34.064383, 5000) #Initial coordinates of point of interest
+time.limit <- 3600 * 1 #How many seconds to fly
 
 #Get this party started
 
@@ -420,7 +418,10 @@ while(t < time.limit) { #Time limit
 
     #If the particle is at the edge of the model, or we are exiting the time domain
     if(reload.model | (tdiff.back + tdiff.fore) > 3) { 
-        print("Downloading model...")
+        print("Downloading model...")   
+        print(paste(tdiff.back, tdiff.fore))
+        print(as.POSIXlt(grd.int[[1]]$fcst.date, tz = "GMT"))
+        print(model.date)
         grd.int <- BuildAtmosphere(model.date, object.coords, model.span, model.res, variables, levels)
         profile.tol.tmp <- c(Inf, Inf)  #Force profile rebuild
         cart.pos <- c(0, 0, object.coords[3])
@@ -456,6 +457,7 @@ while(t < time.limit) { #Time limit
    Re <- AscentRe(ma, pa, rv$V, T.ambient, va, rv$r) #Calculate Reynold's number
    acd <- AscentCd(formula = "smoothsphere") #Calculate ascent coefficient of drag
    va <- AscentVelocity(mi, Mp, mp, ma, pa, po, acd, max.radius, T.ambient, T.diff = T.diff) #Calculate ascent rate
+   va <- 0 #LAGRANGIAN PARTICLE
    cart.pos[3] <- cart.pos[3] + va * deltat #Elevation gain or loss
 
    #Latitude and longitude of object
@@ -484,6 +486,7 @@ while(t < time.limit) { #Time limit
     balloon$lon <- append(balloon$lon, object.coords[1])
     balloon$elev <- append(balloon$elev, object.coords[3])
     balloon$time <- append(balloon$time, t)
+    #print(balloon)
     coords <- cbind(balloon$lon - 360, balloon$lat, balloon$elev)
     PolyLines2GE(coords, goo = "test_trajectory.kml")
 }
