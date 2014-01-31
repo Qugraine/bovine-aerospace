@@ -42,7 +42,14 @@ ReadGrib <- function(file.name, levels, variables) {
 
     #HERE IS THE EXTRACTION
     model.data.vector <- strsplit(paste(gsub("\"", "", csv.str), collapse = ","), split = ",")[[1]]
-    model.data <- t(array(model.data.vector, dim = c(7, length(model.data.vector)/7)))
-    colnames(model.data) <- c("model.run.date", "forecast.date", "variable", "level", "lon", "lat", "value")
+    chunk.inds <- seq(1, length(model.data.vector) - 6, by = 7)
+    model.data <- list(model.run.date = model.data.vector[chunk.inds],
+        forecast.date = model.data.vector[chunk.inds + 1],
+        variables = model.data.vector[chunk.inds + 2],
+        levels = model.data.vector[chunk.inds + 3],
+        lon = as.numeric(model.data.vector[chunk.inds + 4]),
+        lat = as.numeric(model.data.vector[chunk.inds + 5]),
+        value = model.data.vector[chunk.inds + 6]
+        )
     return(model.data)
 }
