@@ -17,7 +17,7 @@ AtmosphericProfile <- function(variables, lon, lat, forecast.date, levels = NULL
    #    SPATIAL.AVERAGING - What kind of spatial interpolation was used, if any
    #    TEMPORAL.AVERAGING - What kind of temporal averaging was used, if any
    #    VARIABLES - Model variables, in the order presented in PROFILE.DATA
-   #    LEVELS - Model levels, in the order presented in PROFILE.DATA
+   #    LEVELS - Model levels, in the order presented in PROFILE.DATAq
    #    MODEL.DATE - When the model was run
    #    FORECAST - What forecast was used
    #    MODEL - What weather model was used
@@ -73,9 +73,10 @@ AtmosphericProfile <- function(variables, lon, lat, forecast.date, levels = NULL
       temporal.average.method <- "Weighted Average Between Forecasts"
    }
 
-   profile <- list(profile.data = profile.data, spatial.averaging = spatial.average.method,
+   l.i <- sort(as.numeric(unlist(str_extract_all(gridded.data$levels, "\\d+"))), index.return = TRUE, decreasing = TRUE) 
+   profile <- list(profile.data = profile.data[l.i$ix,], spatial.averaging = spatial.average.method,
        temporal.averaging = temporal.average.method, variables = gridded.data$variables,
-       levels = gridded.data$levels, model.date = model.to.get$model.run.date, forecast = forecast.used, model = "GFS0.5",
+       levels = gridded.data$levels[l.i$ix], model.date = model.to.get$model.run.date, forecast = forecast.used, model = "GFS0.5",
        date = forecast.date)
    invisible(profile)       
 }
@@ -186,15 +187,17 @@ InternalBuildProfile <- function(gridded.data, lon, lat, spatial.average) {
    return(profile.data)
 }
 
-ModelGrid <- function(model.data, levels = NULL, variables = NULL, model.domain = NULL) {
+ModelGrid <- function(model.data, resolution, levels = NULL, variables = NULL, model.domain = NULL, grid.type = "latlon") {
     #Transform model data array into a grid with dimensions levels x variables x lon range x lat range
     #This should reduce the size of the returned data by removing redundant information
+    #This will perform interpolation as necessary to fit data to a regular grid - be aware of this!
     #INPUTS
     #    MODEL.DATA - Data returned by ReadGrib
+    #    RESOLUTION - Resolution of grid, in degrees if TYPE = "LATLON", in kilometers if TYPE = CARTESIAN, as a 2 element vector c(East-West, North-South)
     #    VARIABLES - variables to include in grid, if NULL, include all of them
     #    LEVELS - levels to include in grid, if NULL, include all of them
     #    MODEL.DOMAIN - vector c(LEFT LON, RIGHT LON, TOP LAT, BOTTOM LAT) of region to include in output. If NULL, include everything.
-    #
+    #    GRID.TYPE - Whether the grid is in lat/lon or cartesian.  Options "latlon" or "cartesian."
     #OUTPUTS
     #   FCST.GRID - A list with elements:
     #       $Z An array of dimensions levels x variables x lon x lat; each level x variable contains the model grid of data from that variable and level
@@ -205,28 +208,33 @@ ModelGrid <- function(model.data, levels = NULL, variables = NULL, model.domain 
     #       $MODEL.RUN.DATE - when the forecast model was run
     #       $FCST.DATE - what date the forecast is for
   
-    model.run.date <- unique(model.data[,1])
+    
+    if(grid.type == "latlon") {
+        nodes.xy <- cbind(model.data$lon, model.data$lat)
+    } else if(grid.type == "cartesian") {
+        proj <- GEOmap::setPROJ(type =2, LAT0 = median(model.data$lat), LON0 = median(model.data$lon))
+        tmp.xy <- GEOmap::GLOB.XY(model.data$lat, model.data$lon, proj)
+        nodes.xy <- cbind(tmp.xy$x, tmp.xy$y) 
+    } else {
+        stop(paste0("Did not recognize grid.type ", grid.type, ".  Available options are \"latlon\" and \"cartesian\""))
+    }
 
-    lat.grid <- unique(round(diff(as.numeric(sort(unique(model.data[,6]))))))
-    lon.grid <- unique(round(diff(as.numeric(sort(unique(model.data[,5])))))) 
-
+    model.run.date <- unique(model.data$model.run.date)
     if(length(model.run.date) > 1) {
         warning("There appears to be more than one model run date in your model grid!")
     }
 
-    fcst.date <- unique(model.data[,2])
+    fcst.date <- unique(model.data$forecast.date)
 
     if(length(fcst.date) > 1) {
         warning("There appears to be more than one model run date in your model grid!")
     }
 
-    data.grid <- matrix(as.numeric(model.data[,5:7]), nrow = nrow(model.data))
-
     if(is.null(variables)) {
-        variables <- unique(model.data[,3]) 
+        variables <- unique(model.data$variables) 
     }
   
-    nomatch.ind <- is.na(match(variables, unique(model.data[,3])))
+    nomatch.ind <- is.na(match(variables, unique(model.data$variables)))
     if(sum(nomatch.ind) > 0) {
         warning(paste("The following variables are NOT present in the model data:", paste(variables[nomatch.ind], collapse = " ")))
         variables <- variables[!nomatch.ind]
@@ -234,10 +242,10 @@ ModelGrid <- function(model.data, levels = NULL, variables = NULL, model.domain 
 
  
     if(is.null(levels)) {
-        levels <- unique(model.data[,4])
+        levels <- unique(model.data$levels)
     }
 
-    nomatch.ind <- is.na(match(levels, unique(model.data[,4])))
+    nomatch.ind <- is.na(match(levels, unique(model.data$levels)))
     if(sum(nomatch.ind) > 0) {
         warning(paste("The following levels are NOT present in the model data:", paste(levels[nomatch.ind], collapse = " ")))
         levels <- levels[!nomatch.ind]
@@ -245,33 +253,28 @@ ModelGrid <- function(model.data, levels = NULL, variables = NULL, model.domain 
 
 
     if(is.null(model.domain)) {
-        model.domain <- c(min(data.grid[,1]), max(data.grid[,1]), max(data.grid[,2]), min(data.grid[,2]))
+        model.domain <- c(min(nodes.xy[,1]), max(nodes.xy[,1]), max(nodes.xy[,2]), min(nodes.xy[,2]))
     }
 
     #Build grid
 
-    lons <- as.numeric(sort(unique(model.data[,5])))
-    lats <- as.numeric(sort(unique(model.data[,6])))
-    grid <- list(x = lons, y = lats)
+    grid <- list(x = seq(model.domain[1], model.domain[2], by = resolution[1]),
+       y = seq(model.domain[4], model.domain[3], by = resolution[2]))
     
-    fcst.grid <- list(z = array(rep(NA, length(lons) * length(lats) * length(variables) * length(levels)),
-        dim = c(length(levels), length(variables), length(lons), length(lats))), 
-        x = sort(lons), y = sort(lats), variables = variables, levels = levels, 
+    fcst.grid <- list(z = array(rep(NA, length(grid$x) * length(grid$y) * length(variables) * length(levels)),
+        dim = c(length(levels), length(variables), length(grid$x), length(grid$y))), 
+        x = grid$x, y = grid$y, variables = variables, levels = levels, 
         model.run.date = model.run.date, fcst.date = fcst.date)
 
     #Put variables and levels into a series of layered images
     for(lvl in levels) {
         for(var in variables) {
-             mi <- which(var == model.data[,3] & lvl == model.data[,4] &
-                   data.grid[,1] >= model.domain[1] & data.grid[,1] <= model.domain[2] &
-                  data.grid[,2] <= model.domain[3] & data.grid[,2] >= model.domain[4])
+             mi <- which(var == model.data$variables & lvl == model.data$levels) 
              if(length(mi) > 0) {
                  fcst.grid$z[which(lvl == fcst.grid$levels), which(var == fcst.grid$variables),,] <- fields::as.image(
-                     array(
-                     data.grid[mi,3],
-                     dim = c(length(lons), length(lats))),
+                     as.numeric(model.data$value[mi]),
                      grid = grid,
-                     x = cbind(data.grid[,1], data.grid[,2]))$z
+                     x = nodes.xy)$z
               }
         }
     }
@@ -279,49 +282,18 @@ ModelGrid <- function(model.data, levels = NULL, variables = NULL, model.domain 
     return(fcst.grid)
 }
 
-WindMagnitudeDirection <- function(lon, lat, forecast.date, variables = NULL, levels = NULL, model.date = "latest", spatial.average = FALSE, temporal.average = FALSE, verbose = TRUE) {
-   #Get wind magnitude and direction and optional other variables by running AtmosphericProfile then transforming wind appropriately.
-   #This function is intended to generate wind profiles for TEPHRA2.
+MagnitudeAzimuth <- function(zonal.wind, meridional.wind) {
+   #Given zonal (East-West) and meridional (North-South) wind speeds, calculate magnitude and azimuth.
    #INPUTS
-   #    LON - Longitude
-   #    LAT - Latitude
-   #    FORECAST.DATE - What date you want the profile for, as a date/time object, in GMT
-   #    VARIABLES - Additional variables besides wind and height, if NULL,  just report wind and elevation
-   #    LEVELS - If not NULL, try and get data for the requested levels only.  If NULL, get all pressure levels
-   #    MODEL.DATE - Which model run to use, in YYYYMMDDHH, where HH is 00, 06, 12, 18.  Defaults to "latest", which means get the latest model available.
-   #        If MODEL.DATE is not "latest", rNOMADS will scan the entire directory, and this will take time. 
-   #    SPATIAL.AVERAGE - Perform nearest neighbor interpolation for 4 grid nodes to get average profile at a specific point.  Default TRUE.  If FALSE, get data from nearest grid node.
-   #    TEMPORAL.AVERAGE - Do a weighted average between forecasts to approximate the profile at a specific time. If FALSE, use closest forecast run.   
+   #    ZONAL.WIND - Wind East West, in meters per second, west negative
+   #    MERIDIONAL.WIND - Wind North South, in meters per second, south negative
    #OUTPUTS
-   #    PROFILE.DATA - Table of pressures and requested variables
-   #    SPATIAL.AVERAGING - What kind of spatial interpolation was used, if any
-   #    TEMPORAL.AVERAGING - What kind of temporal averaging was used, if any
-   #    VARIABLES - Model variables.  This will include height, wind magnitude, and wind azimuth, and potentially others if input VARIABLES is not NULL
-   #    LEVELS - Model levels, in the order presented in PROFILE.DATA
-   #    MODEL.DATE - When the model was run
-   #    FORECAST - What forecast was used
-   #    MODEL - What weather model was used
-   #    DATE - What date was requested for the data
-   #    FORECAST.USED - Which forecast(s) were used to calculate the profile
-   #    NEAREST.MODEL.GRID - The location of the grid node nearest to the requested point
+   #   MAGNITUDE - Wind magnitude, in meters per second
+   #   AZIMUTH  - Wind azimuth, in degrees from north
    
-   if(is.null(variables)) {
-       variables <- c("HGT", "UGRD", "VGRD")
-   } else {
-       variables <- unique(append(variables, c("HGT", "UGRD", "VGRD")))
-   }
-
-
-   profile <- AtmosphericProfile(variables, lon, lat, forecast.date, levels = levels, 
-       model.date = model.date, spatial.average = spatial.average, temporal.average = temporal.average, verbose = verbose)     
-
-   u.i <- which(profile$variables == "UGRD")
-   v.i <- which(profile$variables == "VGRD")
-
-   mag <- sqrt(profile$profile.data[,u.i]^2 + profile$profile.data[,v.i]^2)
-   tmp.az <- (180/pi) * atan2(profile$profile.data[,v.i], profile$profile.data[,u.i])
+   mag <- sqrt(zonal.wind^2 + meridional.wind^2)
+   tmp.az <- (180/pi) * atan2(zonal.wind, meridional.wind)
    az <- tmp.az
    az[tmp.az < 0] <- 360 + tmp.az[tmp.az < 0]
-   profile$wind <- cbind(profile$profile.data[,which(variables == "HGT")], mag, az)
-   invisible(profile)
+   return(list(magnitude = mag, azimuth = az))
 }
