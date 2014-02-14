@@ -1,83 +1,58 @@
 #Functions for doing specific useful tasks with rNOMADS
 
-AtmosphericProfile <- function(variables, lon, lat, forecast.date, levels = NULL, model.date = "latest", spatial.average = FALSE, temporal.average = FALSE, verbose = TRUE) {
-   #Get an atmospheric profile using all available pressure levels, utilizing nearest neighbor interpolation and time weighted averaging if requested
+RTModelProfile <- function(model.url, pred, levels, variables, lon, lat, resolution, grid.type, model.domain = NULL, spatial.average = FALSE, verbose = TRUE) {
+   #Get variables and levels for a list of points, utilizing nearest neighbor interpolation if requested
    #INPUTS
+   #    MODEL.URL - Where the model is located, returned from CrawlModels
+   #    PRED - Which prediction to download
    #    VARIABLES - Model variables to get for profile
-   #    LON - Longitude
-   #    LAT - Latitude
-   #    FORECAST.DATE - What date you want the profile for, as a date/time object, in GMT
-   #    LEVELS - If not NULL, try and get data for the requested levels only.  If NULL, get all pressure levels
-   #    MODEL.DATE - Which model run to use, in YYYYMMDDHH, where HH is 00, 06, 12, 18.  Defaults to "latest", which means get the latest model available.
-   #        If MODEL.DATE is not "latest", rNOMADS will scan the entire directory, and this will take time. 
+   #    LEVELS - Model levels to get for profile
+   #    LON - List of longitudes
+   #    LAT - List of latitudes
+   #    RESOLUTION - Resolution of model, in degrees if Lat/Lon, in kilometers if cartesian, as a 2 element vector (ZONAL, MERIDIONAL)
+   #    GRID.TYPE - If the horizontal part of the model is Lat/Lon or cartesian.
+   #       "latlon" if Lat/Lon, "cartesian" if cartesian.
+   #    MODEL.DOMAIN - a vector of latitudes and longitudes that specify the area to return a forecast for
+   #        If NULL, get 1 degree past limits of LON and LAT
    #    SPATIAL.AVERAGE - Perform nearest neighbor interpolation for 4 grid nodes to get average profile at a specific point.  Default TRUE.  If FALSE, get data from nearest grid node.
-   #    TEMPORAL.AVERAGE - Do a weighted average between forecasts to approximate the profile at a specific time. If FALSE, use closest forecast run.   
    #OUTPUTS
    #    PROFILE.DATA - Table of pressures and requested variables
    #    SPATIAL.AVERAGING - What kind of spatial interpolation was used, if any
-   #    TEMPORAL.AVERAGING - What kind of temporal averaging was used, if any
+   #    PRED - is the exact model run you want, generally from ParseModelPage
    #    VARIABLES - Model variables, in the order presented in PROFILE.DATA
-   #    LEVELS - Model levels, in the order presented in PROFILE.DATAq
+   #    LEVELS - Model levels, in the order presented in PROFILE.DATA
    #    MODEL.DATE - When the model was run
-   #    FORECAST - What forecast was used
    #    MODEL - What weather model was used
    #    DATE - What date was requested for the data
-   #    FORECAST.USED - Which forecast(s) were used to calculate the profile
    #    NEAREST.MODEL.GRID - The location of the grid node nearest to the requested point
 
-   grid.resolution <- 0.75 #Set this in code since we are using only GFS, may make this an option in the future
-
-   #Get atmosphere
-   if(is.null(levels)) {
-       pressure <- c(1, 2, 3, 5, 7, 10, 20, 30, 50, 70,
-           seq(100, 1000, by = 25))
-       levels <- paste(pressure, " mb", sep = "")
-   }
-
-   model.to.get <- GetClosestGFSForecasts(forecast.date, model.date, verbose = verbose)
-   model.domain <- c(lon, lon, lat, lat) + c(-1, 1, 1, -1) * grid.resolution + c(-1, 1, 1, -1) * 0.1 * grid.resolution
    
+
+   #model.to.get <- GetClosestGFSForecasts(forecast.date, model.date, verbose = verbose)
+   if(is.null(model.domain)) {
+       model.domain <- c(min(lon), max(lon), max(lat), min(lat)) + c(-1, 1, 1, -1)
+   }
+ 
    if(spatial.average) {
       spatial.average.method <- "Multilevel B-Splines using MBA::mba.points"
    } else {
       spatial.average.method <- "Nearest Node"
    }
-   if(!temporal.average) {
-      if(abs(model.to.get$back.hr) < abs(model.to.get$fore.hr)) {
-          pred <- model.to.get$back.forecast
-      } else {
-          pred <- model.to.get$fore.forecast
-      }
 
-      forecast.used <- pred
-      grib.info <- GribGrab(model.to.get$model.url, pred, levels, variables, model.domain = model.domain)
-      grib.data <- ReadGrib(file.path(grib.info$local.dir, grib.info$file.name), levels, variables)
-      gridded.data <- ModelGrid(grib.data)
-      profile.data <- InternalBuildProfile(gridded.data, lon, lat, spatial.average)
-      temporal.average.method <- "Nearest Forecast"
-   } else {
-      #Get back forecast
-      grib.info <- GribGrab(model.to.get$model.url, model.to.get$back.forecast, levels, variables, model.domain = model.domain)
-      grib.data <- ReadGrib(file.path(grib.info$local.dir, grib.info$file.name), levels, variables)
-      gridded.data <- ModelGrid(grib.data)
-      back.profile.data <- InternalBuildProfile(gridded.data, lon, lat, spatial.average)
-      #Get foreward forecast
-      grib.info <- GribGrab(model.to.get$model.url, model.to.get$fore.forecast, levels, variables, model.domain = model.domain)
-      grib.data <- ReadGrib(file.path(grib.info$local.dir, grib.info$file.name), levels, variables)
-      gridded.data <- ModelGrid(grib.data)
-      fore.profile.data <- InternalBuildProfile(gridded.data, lon, lat, spatial.average)
-      #Do a weighted average
-      scale <- 1 - abs(c(model.to.get$back.hr, model.to.get$fore.hr)) / sum(abs(c(model.to.get$back.hr, model.to.get$fore.hr)))
-      profile.data <- back.profile.data * scale[1] + fore.profile.data * scale[2] 
-      forecast.used <- c(model.to.get$back.forecast, model.to.get$fore.forecast)
-      temporal.average.method <- "Weighted Average Between Forecasts"
+
+   grib.info <- GribGrab(model.url, pred, levels, variables, model.domain = model.domain)
+   grib.data <- ReadGrib(file.path(grib.info$local.dir, grib.info$file.name), levels, variables)
+   gridded.data <- ModelGrid(grib.data, resolution, grid.type = grid.type)
+
+   l.i <- sort(as.numeric(unlist(str_extract_all(gridded.data$levels, "\\d+"))), index.return = TRUE, decreasing = TRUE)
+   profile.data <- NULL
+   for(k in seq_len(length(lat))) {
+       profile.data[[k]] <- BuildProfile(gridded.data, lon[k], lat[k], spatial.average)[l.i$ix,]
    }
-
-   l.i <- sort(as.numeric(unlist(str_extract_all(gridded.data$levels, "\\d+"))), index.return = TRUE, decreasing = TRUE) 
-   profile <- list(profile.data = profile.data[l.i$ix,], spatial.averaging = spatial.average.method,
-       temporal.averaging = temporal.average.method, variables = gridded.data$variables,
-       levels = gridded.data$levels[l.i$ix], model.date = model.to.get$model.run.date, forecast = forecast.used, model = "GFS0.5",
-       date = forecast.date)
+   profile <- list(profile.data = profile.data, spatial.averaging = spatial.average.method,
+       variables = gridded.data$variables, lat = lat, lon = lon,
+       levels = gridded.data$levels[l.i$ix], model.date = gridded.data$model.run.date, forecast = pred, model.url = model.url,
+       forecast.date = gridded.data$forecast.date)
    invisible(profile)       
 }
 
@@ -153,7 +128,7 @@ GetClosestGFSForecasts <- function(forecast.date, model.date = "latest", verbose
    return(list(model.url = url.to.use, model.run.date = nice.run.date, back.forecast = back.forecast, fore.forecast = fore.forecast, back.hr = back.hr, fore.hr = fore.hr))
 }
 
-InternalBuildProfile <- function(gridded.data, lon, lat, spatial.average) {
+BuildProfile <- function(gridded.data, lon, lat, spatial.average) {
     #This function builds an atmospheric profile, performing spatial interpolation if requested
     #INPUTS
     #    GRIDDED.DATA - Data structure returned by ModelGrid
@@ -208,7 +183,10 @@ ModelGrid <- function(model.data, resolution, levels = NULL, variables = NULL, m
     #       $MODEL.RUN.DATE - when the forecast model was run
     #       $FCST.DATE - what date the forecast is for
   
-    
+    if(length(resolution) != 2) {
+        stop("\"resolution\" must be a 2 element vector: c(ZONAL RESOLUTION, MERIDIONAL RESOLUTION)")
+    }
+ 
     if(grid.type == "latlon") {
         nodes.xy <- cbind(model.data$lon, model.data$lat)
     } else if(grid.type == "cartesian") {
