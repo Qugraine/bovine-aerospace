@@ -116,8 +116,8 @@ GribGrab <- function(model.url, pred, levels, variables, local.dir = ".", file.n
    return(grib.info)
 }
 
-NOMADSList <- function(abbrev = NULL) {
-    #Returns a list of model abbreviations, a short description, and URL for each model offered by the NOMADS server
+NOMADSRealTimeList <- function(abbrev = NULL) {
+    #Returns a list of model abbreviations for real time models, a short description, and URL for each model offered by the NOMADS server
     #If a specific model abbreviation is requested, the abbreviation is checked against the model list.
     #If a match is found, information is returned about that model; otherwise an error occurs
     #INPUTS
