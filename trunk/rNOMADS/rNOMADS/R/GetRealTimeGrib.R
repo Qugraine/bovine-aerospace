@@ -1,9 +1,9 @@
 CrawlModels <- function(abbrev = NULL, url = NULL, depth = NULL, verbose = TRUE) {
    #A simple web crawler that looks at the specified model directory online and gets information on all runs of the specified model.
-   #See the NOMADSList function for available models.
+   #See the NOMADSRealTimeList function for available models.
    #Alternatively, pass CrawlModels a URL to get a model that I have not included yet.
    #INPUTS
-   #    ABBREV - Model abbreviation as defined in NOMADSList().  
+   #    ABBREV - Model abbreviation as defined in NOMADSRealTimeList().  
    #        If NULL, use the url you provided, if you did not provide one, throw error.
    #    URL - Use your own URL and attempt to get model data from it.  
    #        This is in case NOMADS updates its system before I have a chance to update rNOMADS
@@ -17,7 +17,7 @@ CrawlModels <- function(abbrev = NULL, url = NULL, depth = NULL, verbose = TRUE)
    }
    
    if(is.null(url)) {
-       model.info <- NOMADSList(abbrev) 
+       model.info <- NOMADSRealTimeList(abbrev) 
        url <- model.info$url[1]
    }   
 

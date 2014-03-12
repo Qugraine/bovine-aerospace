@@ -1,5 +1,5 @@
 ArchiveGribGrab <- function(abbrev, model.date, model.run, pred, local.dir = ".", file.name = "fcst.grb",
-    tidy = FALSE, verbose = TRUE, download.method = NULL) {
+    tidy = FALSE, verbose = TRUE, download.method = NULL, file.type = "grib2") {
     #Get archived grib file
     #INPUTS
     #    ABBREV - Model abbreviation returned by NOMADSArchiveList
@@ -12,6 +12,9 @@ ArchiveGribGrab <- function(abbrev, model.date, model.run, pred, local.dir = "."
     #    This is useful to clear out previous model runs.
     #    It looks for all files named '.grb' and removes them.
     #    VERBOSE gives a blow by blow account of the download. Default TRUE.
+    #    DOWNLOAD.METHOD allows the user to set the download method used by download.file
+    #    FILE.TYPE specifies which file type to try and get - there may be only one available.
+    #       grib1 for GRIB1, grib2 for GRIB2
     #OUTPUTS
     #    GRIB.INFO contains information about the downloaded file
     #        $LOCAL.DIR is the directory where the grib file is saved
@@ -28,10 +31,19 @@ ArchiveGribGrab <- function(abbrev, model.date, model.run, pred, local.dir = "."
         stop("MODEL.DATE should be in YYYYMMDD format!")
     }
 
+    #Get specified file format
+    if(file.type == "grib1") {
+        suffix <- ".grb"
+    } else if (file.type == "grib2") {
+       suffix <- ".grb2"
+    } else {
+        stop(paste0("Did not recognize file type \"", file.type, "\""))
+    }
+
     #Get model info and set up URL to archive
     model.url <- NOMADSArchiveList(abbrev)$url
     download.url <- paste0(model.url, paste(model.date[1:6], collapse = ""), "/", paste(model.date, collapse = ""), "/") 
-    file.part <- paste0(paste(model.date, collapse = ""), "_", sprintf("%04.f", model.run), "_", sprintf("%03.f", pred), ".grb")
+    file.part <- paste0(paste(model.date, collapse = ""), "_", sprintf("%02.f", model.run), "00_", sprintf("%03.f", pred), suffix)
 
     #Find out which grib files are in the archive
     doc <- XML::htmlParse(download.url)
@@ -41,7 +53,7 @@ ArchiveGribGrab <- function(abbrev, model.date, model.run, pred, local.dir = "."
 
     #Check if the requested file is where we think it is
     if(sum(grepl(paste0(".*", file.part, "$"), link.list)) < 1) {
-        stop(paste("The requested data file does not appear to be in the archive. 
+        stop(paste("The requested data file ending in", file.part, "does not appear to be in the archive. 
             Try opening", download.url, "in a web browser to verify that it's missing."))
     }
 
@@ -53,7 +65,7 @@ ArchiveGribGrab <- function(abbrev, model.date, model.run, pred, local.dir = "."
         warning("Two files were found:  ", paste(link.list[grepl(paste0(".*", file.part, "$"), link.list)], collapse = " "), ".  Both will be downloaded.")
         c <- 1 
     } else {
-        c <- ""
+        c <- "" 
     }
 
     use.curl <- FALSE #May use this as an option in the future
@@ -67,7 +79,9 @@ ArchiveGribGrab <- function(abbrev, model.date, model.run, pred, local.dir = "."
             download.file(grb.url, paste(local.dir,file.name.tmp, sep = "/"), download.method, mode = "wb", quiet = !verbose)
         }
         file.names <- append(file.names, file.name.tmp)
-        c <- c + 1
+        if(c != "") {
+            c <- c + 1
+        }
     }
     grib.info <- list(local.dir = normalizePath(local.dir), file.name = file.names, url = grb.urls)
     return(grib.info)
@@ -88,9 +102,9 @@ CheckNOMADSArchive <- function(abbrev, model.date = NULL) {
     #        $FILE.NAME - The grib file with model data for the date, model run, and prediction
 
     model.url <- NOMADSArchiveList(abbrev)$url
+    model.list <- c()
     if(is.null(model.date)) { #Check all available dates
         #Find out which months are available
-        model.list <- c()
         doc <- XML::htmlParse(model.url)
         month.list <- grep("\\d{6}/", XML::xpathSApply(doc, "//a/@href"), value = TRUE)
         XML::free(doc)
@@ -100,14 +114,14 @@ CheckNOMADSArchive <- function(abbrev, model.date = NULL) {
             XML::free(doc) 
             for(day in date.list) {
                 doc <- XML::htmlParse(paste0(model.url, month, day))
-                model.list <- append(model.list, grep("grb$", XML::xpathSApply(doc, "//a/@href"), value = TRUE))
+                model.list <- append(model.list, grep("grb\\d?$", XML::xpathSApply(doc, "//a/@href"), value = TRUE))
                 XML::free(doc)
              }
          }
      } else {
             model.date <- as.numeric(strsplit(as.character(model.date), split = "")[[1]])
             doc <- XML::htmlParse(paste0(model.url, paste(model.date[1:6], collapse = ""), "/", paste(model.date, collapse = ""), "/"))
-            model.list <- append(model.list, grep("grb$", XML::xpathSApply(doc, "//a/@href"), value = TRUE))
+            model.list <- append(model.list, grep("grb\\d?$", XML::xpathSApply(doc, "//a/@href"), value = TRUE))
             XML::free(doc)
      }
 
@@ -115,7 +129,7 @@ CheckNOMADSArchive <- function(abbrev, model.date = NULL) {
 
      available.models <- list(
          date = stringr::str_extract(model.list, "\\d{8}"),
-         model.run = stringr::str_replace(stringr::str_extract(model.list, "_\\d{4}_"), "_", ""),
+         model.run = stringr::str_replace_all(stringr::str_extract(model.list, "_\\d{4}_"), "_", ""),
          pred = stringr::str_replace(stringr::str_replace(stringr::str_extract(model.list, "_\\d{3}\\."), "\\.", ""), "_", ""),
          file.name = model.list)
      invisible(available.models)
@@ -143,8 +157,8 @@ NOMADSArchiveList <- function(abbrev = NULL) {
        "rap-nrt20",
        "rap-nrt13",
        "gfs-anl", 
-       "ruc-anal",
-       "nam-anal"
+       "ruc-anl",
+       "nam-anl"
        )
 
     names <- c(

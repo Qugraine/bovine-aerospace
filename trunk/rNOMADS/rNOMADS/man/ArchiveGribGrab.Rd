@@ -10,7 +10,7 @@ The data arrives in grib (gridded binary) format that can be read with \code{\li
 Some of these files are in GRIB format, others are in GRIB2 format; select the appropriate file type when calling \code{\link{ReadGrib}}.
 }
 \usage{
-GribGrab(abbrev, model.date, model.run, pred,
+ArchiveGribGrab(abbrev, model.date, model.run, pred,
     local.dir = ".", file.name = "fcst.grb",
     model.domain = NULL, tidy = FALSE, verbose = TRUE,
     check.url = TRUE, download.method = NULL)
@@ -44,6 +44,10 @@ GribGrab(abbrev, model.date, model.run, pred,
   Allows the user to set the download method used by \code{download.file}: \code{"internal"}, \code{"wget"} \code{"curl"}, \code{"lynx"}.
   If \code{NULL} (the default), let R decide.
 }
+  \item{file.type}{
+  Determine whether to get GRIB1 (\code{"grib1"}) or GRIB2 (\code{"grib2"}) file formats.
+  Sometimes both are available, sometimes only one.
+}
 }
 \value{
 \item{grib.info$local.dir}{The absolute path to the grib file that was downloaded.}
@@ -58,41 +62,33 @@ Daniel Bowman \email{daniel.bowman@unc.edu}
 }
 
 \seealso{
-\code{\link{NOMADSArchiveList}}, \code{\link{ReadGrib}}
+\code{\link{CheckNOMADSArchive}}, \code{\link{NOMADSArchiveList}}, \code{\link{ReadGrib}}
 }
 \examples{
-Need to edit these still.
-#An example for the Global Forecast System 0.5 degree model
+#An example for the Global Forecast System
+#Get data for January 1 2014
+#Temperature at 2 m above ground
+#3 hour prediction
 
-#Get the latest model url
-\dontrun{urls.out <- CrawlModels(abbrev = "gfs0.5", depth = 1)}
+abbrev <- "gfs-anl"
+model.date <- 20140101
+model.run <- 06
+pred <- 3
 
-#Get a list of forecasts, variables and levels
-\dontrun{model.parameters <- ParseModelPage(urls.out[1])}
+\dontrun{model.info <- ArchiveGribGrab(abbrev, model.date, 
+    model.run, pred, file.type = "grib2")}
+\dontrun{model.data <- ReadGrib(model.info$file.name, c("2 m above ground"), c("TMP"))}
 
-#Figure out which one is the 6 hour forecast
-#provided by the latest model run
-#(will be the forecast from 6-12 hours from the current date) 
+#Transform to grid
+\dontrun{gridded.data <- ModelGrid(model.data, c(0.5, 0.5))}
 
-\dontrun{my.pred <- model.parameters$pred[grep("06$", model.parameters$pred)]}
+#Get surface temperature in Chapel Hill, NC
+lat <- 35.907605
+lon <- -79.052147
 
-#What region of the atmosphere to get data for
-levels <- c("2 m above ground", "800 mb") 
-
-#What data to return
-variables <- c("TMP", "RH") #Temperature and relative humidity
-
-#Get the data
-\dontrun{grib.info <- GribGrab(urls.out[1], my.pred, levels, variables)}
-
-#Extract the data
-\dontrun{model.data <- ReadGrib(grib.info$file.name, levels, variables)}
-
-#Reformat it
-\dontrun{model.grid <- ModelGrid(model.data)}
-
-#Show an image of world temperature at ground level
-\dontrun{image(model.grid$z[2, 1,,])}
+\dontrun{profile.data <- BuildProfile(gridded.data, lon, lat, TRUE)}
+\dontrun{print(paste0("The temperature prediction in Chapel Hill was ", 
+    sprintf("%.0f", profile.data[1,1] - 272.15), " degrees Celsius."))}
 
 }
 \keyword{ connection }
