@@ -1,5 +1,5 @@
-\name{NOMADSList}
-\alias{NOMADSList}
+\name{NOMADSRealTimeList}
+\alias{NOMADSRealTimeList}
 \title{
 Models available for download through rNOMADS
 }
@@ -8,7 +8,7 @@ A list of abbreviations, names and URLs for the NOMADS models.
 Users can refer to this list to find out more information about the available models, and rNOMADS uses the abbreviations to determine which URLs to scan and download.
 }
 \usage{
-NOMADSList(abbrev = NULL)
+NOMADSRealTimeList(abbrev = NULL)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -27,13 +27,13 @@ Daniel Bowman \email{daniel.bowman@unc.edu}
 }
 
 \seealso{
-\code{\link{WebCrawler}}, \code{\link{ParseModelPage}}, \code{\link{NOMADSList}}, \code{\link{GribGrab}}
+\code{\link{WebCrawler}}, \code{\link{ParseModelPage}}, \code{\link{NOMADSArchiveList}}, \code{\link{GribGrab}}
 }
 \examples{
 
 #The full model list in rNOMADS
 
-model.list <- NOMADSList()
+model.list <- NOMADSRealTimeList()
 
 }
 \keyword{ documentation }

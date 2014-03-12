@@ -48,7 +48,7 @@ This is because there is no protection against infinite recursion.
 #GFS 0.5x0.5 model
 
 \dontrun{urls.out <- WebCrawler(
-"http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl", depth = 100)}
+"http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_hd.pl", depth = 10)}
 
 }
 \keyword{ connection }

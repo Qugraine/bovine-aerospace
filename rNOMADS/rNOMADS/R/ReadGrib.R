@@ -79,10 +79,10 @@ ReadGrib <- function(file.name, levels, variables, file.type = "grib2") {
            for(var in variables) {
                for(lvl in levels) {
                    wg.str <- paste0("wgrib -s ", file.name, " | grep \":", 
-                       var, ":", lvl, ":\" wgrib -V -i -text ", file.name, " -o tmp.txt")
+                       var, ":", lvl, ":\" | wgrib -V -i -text ", file.name, " -o tmp.txt")
                    #The meta.data variable contains info on the lat/lon grid
                    model.data$meta.data[[c]] <- system(wg.str, ignore.stderr = TRUE)
-                   model.data$value[[c]] <- scan("tmp.txt", skip = 1) 
+                   model.data$value[[c]] <- scan("tmp.txt", skip = 1, quiet = TRUE) 
                    model.data$variables[c] <- var
                    model.data$levels[c] <- lvl 
                    c <- c + 1
