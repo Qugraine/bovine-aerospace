@@ -14,7 +14,7 @@ RTModelProfile <- function(model.url, pred, levels, variables, lon, lat, resolut
    #       "latlon" if Lat/Lon, "cartesian" if cartesian.
    #    MODEL.DOMAIN - a vector of latitudes and longitudes that specify the area to return a forecast for
    #        If NULL, get 1 degree past limits of LON and LAT
-   #    SPATIAL.AVERAGE - Perform nearest neighbor interpolation for 4 grid nodes to get average profile at a specific point.  Default TRUE.  If FALSE, get data from nearest grid node.
+   #    SPATIAL.AVERAGE - Perform nearest neighbor interpolation for 4 grid nodes to get average profile at a specific point.  Default FALSE.  If FALSE, get data from nearest grid node.
    #OUTPUTS
    #    PROFILE.DATA - Table of pressures and requested variables
    #    SPATIAL.AVERAGING - What kind of spatial interpolation was used, if any
@@ -22,13 +22,10 @@ RTModelProfile <- function(model.url, pred, levels, variables, lon, lat, resolut
    #    VARIABLES - Model variables, in the order presented in PROFILE.DATA
    #    LEVELS - Model levels, in the order presented in PROFILE.DATA
    #    MODEL.DATE - When the model was run
-   #    MODEL - What weather model was used
    #    DATE - What date was requested for the data
-   #    NEAREST.MODEL.GRID - The location of the grid node nearest to the requested point
 
    
 
-   #model.to.get <- GetClosestGFSForecasts(forecast.date, model.date, verbose = verbose)
    if(is.null(model.domain)) {
        model.domain <- c(min(lon), max(lon), max(lat), min(lat)) + c(-1, 1, 1, -1)
    }
@@ -40,11 +37,11 @@ RTModelProfile <- function(model.url, pred, levels, variables, lon, lat, resolut
    }
 
 
-   grib.info <- GribGrab(model.url, pred, levels, variables, model.domain = model.domain)
+   grib.info <- GribGrab(model.url, pred, levels, variables, model.domain = model.domain, verbose = verbose)
    grib.data <- ReadGrib(file.path(grib.info$local.dir, grib.info$file.name), levels, variables)
    gridded.data <- ModelGrid(grib.data, resolution, grid.type = grid.type)
 
-   l.i <- sort(as.numeric(unlist(str_extract_all(gridded.data$levels, "\\d+"))), index.return = TRUE, decreasing = TRUE)
+   l.i <- sort(as.numeric(unlist(stringr::str_extract_all(gridded.data$levels, "\\d+"))), index.return = TRUE, decreasing = TRUE)
    profile.data <- NULL
    for(k in seq_len(length(lat))) {
        profile.data[[k]] <- BuildProfile(gridded.data, lon[k], lat[k], spatial.average)[l.i$ix,]
@@ -57,11 +54,13 @@ RTModelProfile <- function(model.url, pred, levels, variables, lon, lat, resolut
 }
 
 
-GetClosestGFSForecasts <- function(forecast.date, model.date = "latest", verbose = TRUE) {
+GetClosestGFSForecasts <- function(forecast.date, model.date = "latest", depth = NULL, verbose = TRUE) {
  #Figure out the closest GFS forecasts to a given date, returns both the closest forecast behind and the closest forecast ahead, as well as how far beind and how far ahead
    #INPUTS
    #    FORECAST.DATE - What date you want a forecast for, as a date/time object, in GMT
    #    MODEL.DATE - Which model run to use, in YYYYMMDDHH, where HH is 00, 06, 12, 18.  Defaults to "latest", which means get the latest model available.
+   #    DEPTH - How many model URLS to exame.  This is only taken into account when model.date!="latest".
+   #       The option allows users to prevent the code from scanning every single URL.
    #        If MODEL.DATE is not "latest", rNOMADS will scan the entire directory, and this will take time. 
    #    VERBOSE - Give a blow-by-blow account of progress.  Defaults to TRUE.
    #OUTPUTS
@@ -89,7 +88,7 @@ GetClosestGFSForecasts <- function(forecast.date, model.date = "latest", verbose
            url.to.use <- urls.out[1]
        }
     } else {
-         urls.out <- CrawlModels(abbrev = "gfs0.5", verbose = verbose)
+         urls.out <- CrawlModels(abbrev = "gfs0.5", depth = depth, verbose = verbose)
          model.run.dates <- unlist(stringr::str_extract_all(urls.out, "\\d{10}")) 
          if(model.date %in% model.run.dates) {
               url.to.use <- urls.out[which(model.date == model.run.dates)]
@@ -162,7 +161,7 @@ BuildProfile <- function(gridded.data, lon, lat, spatial.average) {
    return(profile.data)
 }
 
-ModelGrid <- function(model.data, resolution, levels = NULL, variables = NULL, model.domain = NULL, grid.type = "latlon") {
+ModelGrid <- function(model.data, resolution, grid.type = "latlon", levels = NULL, variables = NULL, model.domain = NULL) {
     #Transform model data array into a grid with dimensions levels x variables x lon range x lat range
     #This should reduce the size of the returned data by removing redundant information
     #This will perform interpolation as necessary to fit data to a regular grid - be aware of this!
