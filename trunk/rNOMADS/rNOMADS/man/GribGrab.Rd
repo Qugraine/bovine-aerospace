@@ -20,12 +20,12 @@ GribGrab(model.url, pred, levels, variables,
 }
   \item{pred}{
       The list of predictions (or model times) determined by the specific model from \code{model.url}
-  }
-  \item{variables}{
-  A list of model variables to download.
 }
   \item{levels}{
   A list of model levels to download.
+}
+  \item{variables}{
+  A list of model variables to download.
 }
   \item{local.dir}{
   Where to save the grib file, defaults to the current directory.
