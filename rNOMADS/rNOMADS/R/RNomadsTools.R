@@ -102,7 +102,7 @@ GetClosestGFSForecasts <- function(forecast.date, model.date = "latest", depth =
     }
    
     #Get model run date, convert to POSIX date 
-    run.date <- str_match_all(url.to.use, "\\d{10}")[[1]][1,1]
+    run.date <- stringr::str_match_all(url.to.use, "\\d{10}")[[1]][1,1]
     d.vec <- strsplit(run.date, split = "")[[1]]
     nice.run.date <- strftime(paste0(paste(d.vec[1:4], collapse = ""),
         "-", paste(d.vec[5:6], collapse = ""), "-", paste(d.vec[7:8], collapse = ""),
@@ -112,7 +112,7 @@ GetClosestGFSForecasts <- function(forecast.date, model.date = "latest", depth =
    hr.shift <- as.numeric(difftime(forecast.date, as.POSIXlt(nice.run.date, tz = "GMT")), units = "hours")
 
    #Figure out the forward (in the future) forecast and back (in the past) forecast using hr.shift
-   pred.hrs <- as.numeric(unlist(str_match_all(model.parameters$pred, "\\d{2,3}$")))
+   pred.hrs <- as.numeric(unlist(stringr::str_match_all(model.parameters$pred, "\\d{2,3}$")))
    hr.diff <- pred.hrs - hr.shift
 
    #Get forecasts

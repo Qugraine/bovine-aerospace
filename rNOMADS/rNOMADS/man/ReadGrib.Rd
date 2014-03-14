@@ -10,7 +10,7 @@ It does this by building an argument string, executing a system call to the appr
 Note that \code{wgrib2} must be installed for \code{ReadGrib} to work for current grib files, and \code{wgrib} may need to be installed when looking at archived data.
 }
 \usage{
-ReadGrib(file.name, levels, variables)
+ReadGrib(file.name, levels, variables, file.type = "grib2")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -26,6 +26,7 @@ The path and file name of the grib file to read.
   \item{file.type}{
   Whether the file is in GRIB (\code{"grib1"}) or GRIB2 (\code{"grib2"}) format.
   Default is \code{"grib2"}.
+}
 }
 \details{
 This function constructs system calls to \code{wgrib} and \code{wgrib2}.
@@ -102,6 +103,5 @@ pred <- 0 #Analysis
 
 \dontrun{model.data <- ReadGrib(grib.info$file.name, c("1000 mb"), c("TMP"), 
     file.type = "grib1")}
-
-\{ interface }
+}
 \keyword{ file }

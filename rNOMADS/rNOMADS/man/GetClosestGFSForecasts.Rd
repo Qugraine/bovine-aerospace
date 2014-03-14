@@ -31,7 +31,9 @@ GetClosestGFSForecasts(forecast.date, model.date = "latest",
 \item{verbose}{
   Gives a detailed account of progress.
   Defaults to \code{TRUE}.
-  }
+}
+}
+
 \value{
 \item{forecasts$model.url}{URL to send to \code{GribGrab} for downloading data.}
 \item{forecasts$model.run.date}{When the model was run.}

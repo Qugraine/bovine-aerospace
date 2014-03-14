@@ -52,18 +52,18 @@ Daniel Bowman \email{daniel.bowman@unc.edu}
 \code{\link{ReadGrib}}, \code{\link{BuildProfile}}, \code{\link{RTModelProfile}}
 }
 \examples{
-
+\dontrun{
 #Get some example data 
-\dontrun{urls.out <- CrawlModels(abbrev = "gfs0.5", depth = 1)}
-\dontrun{model.parameters <- ParseModelPage(urls.out[1])}
+urls.out <- CrawlModels(abbrev = "gfs0.5", depth = 1)
+model.parameters <- ParseModelPage(urls.out[1])
 levels <- c("2 m above ground", "100 mb")
 variables <- c("TMP", "RH") #Temperature and relative humidity
-\dontrun{grib.info <- GribGrab(urls.out[1], model.parameters$pred[1], levels, variables)}
+grib.info <- GribGrab(urls.out[1], model.parameters$pred[1], levels, variables)
 #Extract the data
-\dontrun{model.data <- ReadGrib(grib.info$file.name, levels, variables)}
+model.data <- ReadGrib(grib.info$file.name, levels, variables)
 
 #Make it into an array
-\dontrun{gfs.array <- ModelGrid(model.data, c(0.5, 0.5))}
+gfs.array <- ModelGrid(model.data, c(0.5, 0.5))
 
 #What variables and levels we have
 print(gfs.array$levels)
@@ -81,7 +81,7 @@ lon <- gfs.array$x[ti[1,1]] #Lon of minimum temp
 #Find maximum temperature at 100 mb atmospheric pressure
 max.temp <- max(gfs.array$z[1, 1,,]) - 273.15
 sprintf("\%.1f", max.temp) #Brrr!
-
+}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
