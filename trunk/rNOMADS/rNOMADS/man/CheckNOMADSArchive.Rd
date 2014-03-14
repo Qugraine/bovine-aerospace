@@ -8,7 +8,7 @@ This function checks to see if data exists for a given date and model.
 It checks for both GRIB1 or GRIB2 files.
 }
 \usage{
-CheckNOMADSArchives(abbrev, model.date = NULL)
+CheckNOMADSArchive(abbrev, model.date = NULL)
 }
 \arguments{
   \item{abbrev}{
@@ -46,5 +46,5 @@ model.date <- 20140101
 #Determine all available North American Mesoscale models in the archiv
 #This will take some time
 \dontrun{nam.available.models <- CheckNOMADSArchive("nam-anl")}
-
+}
 \keyword{ utilities }

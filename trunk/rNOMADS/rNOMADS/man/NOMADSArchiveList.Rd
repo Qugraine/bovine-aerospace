@@ -27,7 +27,7 @@ Daniel Bowman \email{daniel.bowman@unc.edu}
 }
 
 \seealso{
-\code{\link{NOMADSList}}
+\code{\link{NOMADSRealTimeList}}
 }
 \examples{
 

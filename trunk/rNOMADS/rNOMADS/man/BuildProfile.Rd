@@ -16,11 +16,12 @@ BuildProfile(gridded.data, lon, lat, spatial.average)
   \item{lon}{
      Longitude of point of interest.
 }
-  \item{lat}
+  \item{lat}{
      Latitude of point of interest.
 }
-  \item{spatial.average}
+  \item{spatial.average}{
      Whether to interpolate data using b-splines to obtain value at the requested point (\code{spatial.average = TRUE}) or use the nearest model node (\code{spatial.average = FALSE}).
+}
 }
 \details{
 It is much more efficient to download a large chunk of data and extract profile points from that as opposed to downloading individual small model chunks in the vicinity of each point of interest.
@@ -57,6 +58,7 @@ levels <- paste(pressure, " mb", sep = "")
 #Variables - temperature and height only
 variables <- c("TMP", "HGT")
 
+\dontrun{
 grib.info <- GribGrab(model.url, pred, levels, variables,
    model.domain = c(-85, -75, 37, 32))
 grib.data <- ReadGrib(grib.info$file.name, levels, variables)
@@ -65,7 +67,7 @@ gridded.data <- ModelGrid(grib.data, c(0.5, 0.5))
 profile <- BuildProfile(gridded.data, lon, lat, TRUE)
 plot(profile[,2] - 273.15, profile[,1], xlab = "Temperature (C)",
    ylab = "Height (m)", main = "Temperature Profile above Chapel Hill, NC")
-
+}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

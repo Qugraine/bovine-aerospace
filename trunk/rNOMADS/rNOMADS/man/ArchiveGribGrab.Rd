@@ -11,9 +11,8 @@ Some of these files are in GRIB format, others are in GRIB2 format; select the a
 }
 \usage{
 ArchiveGribGrab(abbrev, model.date, model.run, pred,
-    local.dir = ".", file.name = "fcst.grb",
-    model.domain = NULL, tidy = FALSE, verbose = TRUE,
-    check.url = TRUE, download.method = NULL)
+    local.dir = ".", file.name = "fcst.grb", tidy = FALSE,
+    verbose = TRUE, download.method = NULL, file.type = "grib2")
 }
 \arguments{
   \item{abbrev}{
@@ -90,5 +89,6 @@ lon <- -79.052147
 \dontrun{print(paste0("The temperature prediction in Chapel Hill was ", 
     sprintf("%.0f", profile.data[1,1] - 272.15), " degrees Celsius."))}
 
+}
 }
 \keyword{ connection }

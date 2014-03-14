@@ -43,6 +43,7 @@ RTModelProfile(model.url, pred, levels, variables, lon, lat, resolution,
    \item{verbose}{If \code{TRUE}, provide information on the download process.
        Default \code{TRUE}.
 }
+}
 \details{
 It is much more efficient to download a large chunk of data and extract profile points from that as opposed to downloading individual small model chunks in the vicinity of each point of interest.
 That is why I developed this function.
