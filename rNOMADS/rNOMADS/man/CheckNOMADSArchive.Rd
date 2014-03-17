@@ -30,20 +30,20 @@ CheckNOMADSArchive(abbrev, model.date = NULL)
 \url{http://nomads.ncdc.noaa.gov/}
 }
 \author{
-Daniel Bowman \email{daniel.bowman@unc.edu}
+Daniel C. Bowman \email{daniel.bowman@unc.edu}
 }
 
 \seealso{
 \code{\link{NOMADSArchiveList}}, \code{\link{ArchiveGribGrab}}
 }
 \examples{
-#See what's available for January 1 2014"
+#See what is available for January 1 2014
 
 abbrev <- "gfs-anl"
 model.date <- 20140101
 \dontrun{gfs.available.models <- CheckNOMADSArchive(abbrev, model.date)}
 
-#Determine all available North American Mesoscale models in the archiv
+#Determine all available North American Mesoscale models in the archive
 #This will take some time
 \dontrun{nam.available.models <- CheckNOMADSArchive("nam-anl")}
 }

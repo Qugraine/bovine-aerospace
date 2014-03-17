@@ -4,7 +4,7 @@
 Get model data at a specific point.
 }
 \description{
-Takes the output of \code{\link{ModelGrid}} and extracts data at a specific point, peforming interpolation if required.
+Takes the output of \code{\link{ModelGrid}} and extracts data at a specific point, performing interpolation if required.
 }
 \usage{
 BuildProfile(gridded.data, lon, lat, spatial.average)
@@ -30,7 +30,7 @@ It is much more efficient to download a large chunk of data and extract profile 
 \item{profile.data}{A levels x variables matrix with data for a given point.}
 }
 \author{
-Daniel Bowman \email{daniel.bowman@unc.edu}
+Daniel C. Bowman \email{daniel.bowman@unc.edu}
 }
 \seealso{
 \code{\link{ModelGrid}}, \code{\link{BuildProfile}}

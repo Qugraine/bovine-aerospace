@@ -23,7 +23,7 @@ MagnitudeAzimuth(zonal.wind, meridional.wind)
 \item{winds$azimuth}{Azimuth of wind vector in degrees from North}
 }
 \author{
-Daniel Bowman \email{daniel.bowman@unc.edu}
+Daniel C. Bowman \email{daniel.bowman@unc.edu}
 }
 
 \examples{

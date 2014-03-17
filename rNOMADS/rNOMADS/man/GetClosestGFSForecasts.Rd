@@ -43,7 +43,7 @@ GetClosestGFSForecasts(forecast.date, model.date = "latest",
 \item{forecasts$fore.hr}{How many hours the fore forecast is in front of the requested date.}
 }
 \author{
-Daniel Bowman \email{daniel.bowman@unc.edu}
+Daniel C. Bowman \email{daniel.bowman@unc.edu}
 }
 \seealso{
 \code{\link{RTModelProfile}}, \code{\link{BuildProfile}}, \code{\link{GribGrab}}

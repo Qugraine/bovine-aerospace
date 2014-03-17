@@ -57,7 +57,7 @@ ArchiveGribGrab(abbrev, model.date, model.run, pred,
 \url{http://nomads.ncdc.noaa.gov/}
 }
 \author{
-Daniel Bowman \email{daniel.bowman@unc.edu}
+Daniel C. Bowman \email{daniel.bowman@unc.edu}
 }
 
 \seealso{
@@ -87,8 +87,7 @@ lon <- -79.052147
 
 \dontrun{profile.data <- BuildProfile(gridded.data, lon, lat, TRUE)}
 \dontrun{print(paste0("The temperature prediction in Chapel Hill was ", 
-    sprintf("%.0f", profile.data[1,1] - 272.15), " degrees Celsius."))}
+    sprintf("\%.0f", profile.data[1,1] - 272.15), " degrees Celsius."))}
 
-}
 }
 \keyword{ connection }

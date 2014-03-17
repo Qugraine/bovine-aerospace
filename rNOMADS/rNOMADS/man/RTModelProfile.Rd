@@ -57,7 +57,7 @@ That is why I developed this function.
 \item{profile$levels}{Model levels, in the order presented in \code{profile$profile.data}}
 }
 \author{
-Daniel Bowman \email{daniel.bowman@unc.edu}
+Daniel C. Bowman \email{daniel.bowman@unc.edu}
 }
 \seealso{
 \code{\link{GetClosestGFSForecasts}}, \code{\link{BuildProfile}}
