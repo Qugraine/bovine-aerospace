@@ -4,7 +4,7 @@
 Archived models available for download through rNOMADS
 }
 \description{
-A list of abbreviations, names and URLs for the NOMADS models arcived on the NCDC web site..
+A list of abbreviations, names and URLs for the NOMADS models archived on the NCDC web site..
 Users can refer to this list to find out more information about the available models, and rNOMADS uses the abbreviations to determine how to access the archives.
 }
 \usage{
@@ -23,7 +23,7 @@ NOMADSArchiveList(abbrev = NULL)
     \item{urls}{The web address of the download page for each model}
 }
 \author{
-Daniel Bowman \email{daniel.bowman@unc.edu}
+Daniel C. Bowman \email{daniel.bowman@unc.edu}
 }
 
 \seealso{

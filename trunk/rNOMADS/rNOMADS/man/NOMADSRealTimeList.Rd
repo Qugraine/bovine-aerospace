@@ -23,7 +23,7 @@ NOMADSRealTimeList(abbrev = NULL)
     \item{urls}{The web address of the download page for each model}
 }
 \author{
-Daniel Bowman \email{daniel.bowman@unc.edu}
+Daniel C. Bowman \email{daniel.bowman@unc.edu}
 }
 
 \seealso{

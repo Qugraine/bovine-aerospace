@@ -45,7 +45,7 @@ If you set the spacing of lon.grid and/or lat.grid coarser than the downloaded m
 \item{fcst.date}{The date of the forecast}
 }
 \author{
-Daniel Bowman \email{daniel.bowman@unc.edu}
+Daniel C. Bowman \email{daniel.bowman@unc.edu}
 }
 
 \seealso{

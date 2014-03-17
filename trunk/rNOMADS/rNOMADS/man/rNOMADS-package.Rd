@@ -30,7 +30,7 @@ wgrib2 reference: \cr
 Ebisuzaki, W, Bokhorst, R., Hyvatti, J., Jovic, D., Nilssen, K,
     Pfeiffer, K.,  Romero, P.,  Schwarb, M., da Silva, A., Sondell, N., and Varlamov, S. (2011).
     wgrib2: read and write GRIB2 files.  \emph{National Weather Service Climate Prediction Center}, \cr
-    \url{http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/}
+    \url{http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/}\cr
 wgrib download page:\cr
 \url{http://www.cpc.ncep.noaa.gov/products/wesley/wgrib.html}\cr
 }

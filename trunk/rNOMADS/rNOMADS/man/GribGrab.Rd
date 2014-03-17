@@ -60,7 +60,7 @@ GribGrab(model.url, pred, levels, variables,
 \url{http://nomads.ncep.noaa.gov/}
 }
 \author{
-Daniel Bowman \email{daniel.bowman@unc.edu}
+Daniel C. Bowman \email{daniel.bowman@unc.edu}
 }
 
 \seealso{
