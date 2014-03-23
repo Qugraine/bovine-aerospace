@@ -1,4 +1,5 @@
 library(rNOMADS)
+save.fig <- TRUE #If TRUE, save as postscript, if FALSE, display
 
 #Download list of USArray station locations
 download.file("http://www.unc.edu/~haksaeng/rNOMADS/myTA.RDATA", destfile = "myTA.RDATA")
@@ -24,6 +25,10 @@ profiles <- RTModelProfile(urls.out[1], pred,
    levels, variables, myTA$lon, myTA$lat, resolution = resolution,
    grid.type = grid.type)
 
+if(save.fig) {
+   postscript("usarray_tmp_profiles.eps")
+}
+
 ##Plot all temperatures
 plot(c(-100, 50), c(0, 50000), type = "n", 
     xlab = "Temperature (C)", ylab = "Geopotential Height (m)",
@@ -35,6 +40,14 @@ for(k in seq_len(length(myTA$lon))) {
        profiles$profile.data[[k]][,2] - 273.15, method = "natural")
    synth.tmp <- tmp.spline(synth.hgt)
    lines(synth.tmp, synth.hgt)
+}
+
+if(save.fig) {
+   dev.off()
+}
+
+if(save.fig) {
+   postscript("usarray_wind_profiles.eps")
 }
 
 ## Plot all winds
@@ -52,5 +65,12 @@ for(k in seq_len(length(myTA$lon))) {
        profiles$profile.data[[k]][,4] * 3.6, method = "natural")
    synth.merid <- merid.spline(synth.hgt)
    lines(synth.merid, synth.hgt, col = "blue")
+}
+
+legend("topleft", col = c("red", "blue"),
+   pch = c(NA, NA), lty = c(1, 1), 
+   legend = c("Zonal Wind", "Meridional Wind"))
+if(save.fig) {
+   dev.off()
 }
 

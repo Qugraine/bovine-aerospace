@@ -1,5 +1,7 @@
 ## MAKE GLOBAL MAPS OF TEMP AND WIND SPEED WITH GFS
 
+save.fig <- TRUE #If TRUE, save as postscript, if FALSE, display
+
 #Get libraries for weather data and global mapping
 library(rNOMADS) 
 library(GEOmap)
@@ -35,9 +37,13 @@ li <- which(atmos$levels == "2 m above ground")
 vi <- which(atmos$variables == "TMP")
 colormap <- rev(rainbow(500, start = 0 , end = 5/6))
 
+if(save.fig) {
+   postscript("world_surface_temp.eps")
+}
+
 image(atmos$x + 180, sort(atmos$y), atmos$z[li,vi,,], col = colormap,
     xlab = "Longitude", ylab = "Latitude",
-    main = paste("World Temperature at Ground Level (deg C):", atmos$fcst.date), "GMT")
+    main = paste("World Temperature at Ground Level (deg C):", atmos$fcst.date, "GMT"))
 
 #Plot coastlines
 plotGEOmap(coastmap, border = "black", add = TRUE,
@@ -45,6 +51,14 @@ plotGEOmap(coastmap, border = "black", add = TRUE,
 
 #Plot legend, convert to Celsius
 vertical.image.legend(col=colormap, zlim = range(atmos$z[li,vi,,] - 273.15))
+
+if(save.fig) {
+   dev.off()
+}
+
+if(save.fig) {
+   postscript("world_surface_wind.eps")
+}
 
 #Next, plot wind magnitude at 10 m above ground
 li <- which(atmos$levels == "10 m above ground")
@@ -65,6 +79,14 @@ plotGEOmap(coastmap, border = "black", add = TRUE,
 #Plot legend, convert to km/hr
 vertical.image.legend(col=colormap, zlim = range(wind.mag * 3.6))
 
+if(save.fig) {
+   dev.off()
+}
+
+if(save.fig) {
+   postscript("world_strato_wind.eps")
+}
+
 #Finally, plot winds at 300 mb
 li <- which(atmos$levels == "300 mb")
 wind.mag <- sqrt(atmos$z[li,vi.zonal,,]^(2) + atmos$z[li,vi.merid,,]^(2))
@@ -80,4 +102,6 @@ plotGEOmap(coastmap, border = "black", add = TRUE,
 
 #Plot legend, convert to km/hr
 vertical.image.legend(col=colormap, zlim = range(wind.mag * 3.6))
-
+if(save.fig) {
+   dev.off()
+}
