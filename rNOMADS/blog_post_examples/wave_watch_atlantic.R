@@ -2,6 +2,8 @@ library(rNOMADS)
 library(GEOmap)
 library(aqfig)
 
+save.fig <- TRUE #If TRUE, save as postscript, if FALSE, display
+
 #Get latest wave model run
 urls.out <- CrawlModels(abbrev = "wave", depth = 1)
 
@@ -37,8 +39,11 @@ ocean <- ModelGrid(grib.data.sub, resolution)
 li <- which(ocean$levels == "surface")
 vi <- which(ocean$variables == "WVHGT")
 
-
 colormap <- rev(rainbow(500, start = 0 , end = 5/6))
+
+if(save.fig) {
+   postscript("atlantic_wave_height.eps")
+}
 
 image(ocean$x + 180, sort(ocean$y), ocean$z[li,vi,,], col = colormap,
     xlab = "Longitude", ylab = "Latitude",
@@ -50,3 +55,7 @@ plotGEOmap(coastmap, border = "black", add = TRUE,
 
 #Plot legend, convert to Celsius
 vertical.image.legend(col=colormap, zlim = range(ocean$z[li, vi, ,][!is.na(ocean$z[li,vi,,])]))
+
+if(save.fig) {
+   dev.off()
+}

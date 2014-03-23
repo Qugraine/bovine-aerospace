@@ -2,6 +2,8 @@
 
 library(rNOMADS)
 
+save.fig <- TRUE #If TRUE, save as postscript, if FALSE, display
+
 #Get the date and time for right now
 #Need to convert it to UTM/GMT
 
@@ -59,16 +61,31 @@ synth.merid <- merid.spline(synth.hgt)
 
 #Make plots
 #Temperature
+
+if(save.fig) {
+   postscript("tmp_profile.eps")
+}
+
 plot(synth.tmp, synth.hgt, type = "l",
    xlab = "Temperature (C)", ylab = "Geopotential Height (m)", 
-   main = paste("Temperature Profile at Sakura-Jima,", forecast.date))
+   main = paste("Temperature Profile at Sakura-Jima volcano,", forecast.date, "GMT"))
 points(profile.array[,2] - 273.15, profile.array[,1], col = "red")
+
+if(save.fig) {
+   dev.off()
+}
+
 #Zonal/Meridional wind speed
 wind.range <- c(min(cbind(synth.zone, synth.merid)),
    max(cbind(synth.zone, synth.merid)))
+
+if(save.fig) {
+   postscript("wind_profile.eps")
+}
+
 plot(wind.range, c(min(synth.hgt), max(synth.hgt)), type = "n",
    xlab = "Wind Speed (km/hr)", ylab = "Geopotential Height (m)",
-   main = paste("Zonal and Meridional Wind Speeds at Sakura-Jima,", forecast.date))
+   main = paste("Zonal and Meridional Wind Speeds at Sakura-Jima volcano,", forecast.date, "GMT"))
 
 points(profile.array[,3] * 3.6, profile.array[,1], col = "red")
 lines(synth.zone, synth.hgt, col = "red")
@@ -77,4 +94,8 @@ lines(synth.merid, synth.hgt, col = "blue")
 
 legend("topright", pch = c(1, 2), col = c("red", "blue"), lty = c(1, 1),
    legend = c("Zonal Wind", "Meridional Wind"))
+
+if(save.fig) {
+   dev.off()
+}
 
