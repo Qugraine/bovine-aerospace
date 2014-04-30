@@ -1,0 +1,2 @@
+rNOMADS should throw an error when a server request to NCDC times out.
+Apparently it is not, and the result is some really unintelligible errors.
