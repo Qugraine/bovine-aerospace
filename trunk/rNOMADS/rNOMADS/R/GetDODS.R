@@ -141,10 +141,16 @@ DODSGrab <- function(model.url, model.run, variable, time, lon, lat, levels = NU
    data.url <- paste0(preamble, time.str, level.str, lat.str, lon.str)  
 
    #RCurl needs to be loaded for this to work I think
-   data.txt <- readLines(data.url)
-   
-   lons <- as.numeric(unlist(strsplit(data.txt[grep("^lon,", data.txt) + 1], split = ",")))
+   #data.txt <- readLines(data.url)
+   data.txt.raw <- RCurl::getURL(data.url)
+   if(grepl("[eE][rR][rR][oO][rR]", data.txt.raw)) {
+       warning(paste0("There may have been an error retrieving data from the NOMADS server.  HTML text is as follows\n", data.txt.raw
+       ))
+   }
+   data.txt <- unlist(strsplit(data.txt.raw, split = "\\n"))
    lats <- as.numeric(unlist(strsplit(data.txt[grep("^lat,", data.txt) + 1], split = ",")))
+   lons <- as.numeric(unlist(strsplit(data.txt[grep("^lon,", data.txt) + 1], split = ",")))
+ 
    if(l.ind) {
        levels <- as.numeric(unlist(strsplit(data.txt[grep("^lev,", data.txt) + 1], split = ",")))
    }
@@ -163,33 +169,35 @@ DODSGrab <- function(model.url, model.run, variable, time, lon, lat, levels = NU
    row.num <- (stringr::str_count(val.txt[1], ",") - 3 + l.ind) * length(val.txt)
    model.data.tmp <- array(rep("", row.num), dim = c(row.num, 7))
 
-   c <- 1 #Counter
+   model.data <- list(
+       model.run.date = NULL, 
+       forecast.date  = NULL,
+       variables      = NULL,
+       levels         = NULL,
+       lon            = NULL,
+       lat            = NULL,
+       value          = NULL)
+
    for(k in seq_len(length(val.txt))) {
        val.tmp <- sapply(strsplit(val.txt[k], split = ","), as.numeric)
        for(j in seq_len(length(val.tmp) - 2 - l.ind)) {
            
-           model.data.tmp[c, 1] <- model.run.date
-           model.data.tmp[c, 2] <- times[val.tmp[1] + 1]
-           model.data.tmp[c, 3] <- variable
+           model.data$model.run.date <- append(model.data$model.run.date, model.run.date)
+           model.data$forecast.date  <- append(model.data$forecast.date, times[val.tmp[1] + 1])
+           model.data$variables      <- append(model.data$variables, variable)
            if(l.ind) {
-               model.data.tmp[c, 4] <- levels[val.tmp[2] + 1]
+               model.data$levels <- append(model.data$levels, levels[val.tmp[2] + 1])
            }
-           model.data.tmp[c, 5] <- lats[val.tmp[2 + l.ind] + 1]
-           model.data.tmp[c, 6] <- lons[j]
-           model.data.tmp[c, 7] <- val.tmp[2 + j + l.ind]
-           c <- c + 1
+           model.data$lon            <- append(model.data$lon, lons[j])
+           model.data$lat            <- append(model.data$lat, lats[val.tmp[2 + l.ind] + 1])
+           model.data$value          <- append(model.data$value, val.tmp[2 + j + l.ind])
        }     
    }
+   
+   if(!l.ind) {
+       model.data$levels <- rep(NA, length(model.data$value))
+   }
 
-   model.data <- list(
-       model.run.date = model.data.tmp[,1],
-       forecast.date  = model.data.tmp[,2],
-       variables      = model.data.tmp[,3],
-       levels         = model.data.tmp[,4],
-       lon            = as.numeric(model.data.tmp[,5]),
-       lat            = as.numeric(model.data.tmp[,6]),
-       value          = model.data.tmp[,7])
- 
    return(model.data)
 }
 
