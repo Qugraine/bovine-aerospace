@@ -1,5 +1,5 @@
-launch_lat=35.785139
-launch_lon=-78.683236
+launch_lat=35.823833
+launch_lon=-79.105557
 model_parameters=[10000, 0.1, 0.1, 0.1, 0.1, 30000, 5000, 40000]
 #model_parameters[0]-Number of times to run the monte carlo model
 #model_parameters[1]-standard deviation of total ascent velocity
@@ -814,14 +814,14 @@ descent_model=ascent_model
 model_resolution=100
 display=True
 forward=True
-mb=0.6
-L=2
+mb=1
+L=2.5
 po=1.06
 ma=0.02897
 mp=0.004002602
 mi=1
 dcd=1.5
-rp=0.7
+rp=0.3
 rb=3.05
 trials=1
 file_name=str(launch_time)+"_point_"+str(round(launch_point[0], 3))+"_"+str(round(launch_point[1], 3))+".txt"
