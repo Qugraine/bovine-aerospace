@@ -122,7 +122,7 @@ NOMADSRealTimeList <- function(url.type, abbrev = NULL) {
     "Real Time Ocean Forecast System - Atlantic High Resolution",
     "Sea Ice",
     "Operational Ocean Wave Predictions",
-    "Opreational Ocean Wave Predictions - Great Lakes",
+    "Operational Ocean Wave Predictions - Great Lakes",
     "Multi-grid Wave",
     "Hurricane Wave",
     "Combined Wave Ensemble",

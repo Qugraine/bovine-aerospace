@@ -63,7 +63,7 @@ GetDODSModelRuns <- function(model.url) {
    }
 
    html.tmp <- XML::htmlParse(model.url)
-   model.runs <- XML::xpathSApply(html.tmp, '//b', xmlValue) 
+   model.runs <- XML::xpathSApply(html.tmp, '//b', XML::xmlValue) 
    XML::free(html.tmp)
    html.txt <- readLines(model.url)
 
@@ -94,7 +94,7 @@ GetDODSModelRunInfo <- function(model.url, model.run) {
           "Details:  Attempted to access ", info.url, " but did not succeed..."))
    }
             
-   info.table <- readHTMLTable(info.url)[[2]]
+   info.table <- XML::readHTMLTable(info.url)[[2]]
    info.arr <- cbind(
        as.vector(info.table[,1]),
        as.vector(info.table[,2]),
@@ -177,25 +177,25 @@ DODSGrab <- function(model.url, model.run, variable, time, lon, lat, levels = NU
        lon            = NULL,
        lat            = NULL,
        value          = NULL)
-
+   
+   r.start <- 3 + l.ind #What row to start at
    for(k in seq_len(length(val.txt))) {
        val.tmp <- sapply(strsplit(val.txt[k], split = ","), as.numeric)
-       for(j in seq_len(length(val.tmp) - 2 - l.ind)) {
-           
-           model.data$model.run.date <- append(model.data$model.run.date, model.run.date)
-           model.data$forecast.date  <- append(model.data$forecast.date, times[val.tmp[1] + 1])
-           model.data$variables      <- append(model.data$variables, variable)
-           if(l.ind) {
-               model.data$levels <- append(model.data$levels, levels[val.tmp[2] + 1])
-           }
-           model.data$lon            <- append(model.data$lon, lons[j])
-           model.data$lat            <- append(model.data$lat, lats[val.tmp[2 + l.ind] + 1])
-           model.data$value          <- append(model.data$value, val.tmp[2 + j + l.ind])
-       }     
+       r.end <- length(val.tmp)
+       get.rows <- r.end - r.start + 1
+       model.data$model.run.date <- append(model.data$model.run.date, rep(model.run.date, get.rows))
+       model.data$forecast.date  <- append(model.data$forecast.date, rep(times[val.tmp[1] + 1], get.rows))
+       model.data$variables      <- append(model.data$variables, rep(variable, get.rows))
+       if(l.ind) {
+           model.data$levels <- append(model.data$levels, rep(levels[val.tmp[2] + 1], get.rows))
+       }
+       model.data$lon            <- append(model.data$lon, lons) 
+       model.data$lat            <- append(model.data$lat, rep(lats[val.tmp[2 + l.ind] + 1], get.rows))
+       model.data$value          <- append(model.data$value, val.tmp[r.start:r.end])
    }
    
    if(!l.ind) {
-       model.data$levels <- rep(NA, length(model.data$value))
+       model.data$levels <- rep("level not defined", length(model.data$value))
    }
 
    return(model.data)
