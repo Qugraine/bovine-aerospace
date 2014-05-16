@@ -4,7 +4,7 @@
 \usepackage{hyperref}
 \begin{document}
 \setkeys{Gin}{width=\textwidth}
-\title{Downloading and Analyzing Weather Forecast Data with rNOMADS}
+\title{Downloading and Analyzing Weather Forecast Data with rNOMADS using GRIB}
 \author{Daniel Bowman}
 \date{\today}
 \maketitle
@@ -13,12 +13,15 @@
 \section{Motivation}
 
 I designed the rNOMADS package to provide a quick and easy interface to the NOAA Operational Model Archive and Distribution System.
-The package consists of two parts: a downloader that gathers data from the NOMADS website, and a reader that loads the model data into R.
+It can retrieve data in ascii format (this works for all operating systems) or in a binary format called GRIB (this works for Linux only at this time).
+This document describes downloading, reading, and displaying data in GRIB format.
+Please refer to the \href{http://www.unc.edu/\%7Ehaksaeng/rNOMADS/rNOMADS_dods_examples.pdf}{companion document} for information on ascii data download via GrADS-DODS.
+
+The GRIB portion of the rNOMADS package consists of two parts: a downloader that gathers data from the NOMADS website, and a reader that loads the model data into R.
 The reader requires the user to install \textbf{wgrib2}.
 wgrib2 is a set of routines for processing GRIB files and can be downloaded \href{http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/}{here}.
-Note that not all operating systems are supported - Windows users probably have to use Cygwin.
 
-The rNOMADS package provides access to 54 models.
+The rNOMADS package provides access to GRIB file for 54 models.
 This vignette shows how to download data from the Global Forecast System 0.5 x 0.5 degree model.
 This model describes the state of the atmosphere across the entire planet in 0.5 by 0.5 degree cells.
 The model divides the atmosphere into 64 layers.
@@ -50,9 +53,10 @@ Hurricanes and tropical storms appear as small circular regions in this map.
 
 library(GEOmap)
 library(rNOMADS)
+library(fields)
 
 #Get the latest 2 model instances
-urls.out <- CrawlModels(abbrev = "gfs0.5", 
+urls.out <- CrawlModels(abbrev = "gfs_hd", 
     depth = 2, verbose = FALSE)
 
 #Get the available predictions.
@@ -171,7 +175,7 @@ levels <- c("surface")
 resolution <- c(0.5, 0.5)
 
 #Get the latest 2 model instances
-urls.out <- CrawlModels(abbrev = "gfs0.5",
+urls.out <- CrawlModels(abbrev = "gfs_hd",
     depth = 2, verbose = FALSE)
 
 #Get the available predictions.
@@ -288,7 +292,7 @@ where $\rho$ is density, $p$ is pressure, $R_{specific}$ is the specific gas con
 library(rNOMADS)
 
 #Get the latest 2 model instances
-urls.out <- CrawlModels(abbrev = "gfs0.5",
+urls.out <- CrawlModels(abbrev = "gfs_hd",
     depth = 2, verbose = FALSE)
 resolution <- c(0.5, 0.5)
 grid.type <- "latlon"

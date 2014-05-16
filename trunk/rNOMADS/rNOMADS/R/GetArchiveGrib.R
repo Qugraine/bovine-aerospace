@@ -41,7 +41,7 @@ ArchiveGribGrab <- function(abbrev, model.date, model.run, pred, local.dir = "."
     }
 
     #Get model info and set up URL to archive
-    model.url <- NOMADSArchiveList(abbrev)$url
+    model.url <- NOMADSArchiveList("grib", abbrev=abbrev)$url
     download.url <- paste0(model.url, paste(model.date[1:6], collapse = ""), "/", paste(model.date, collapse = ""), "/") 
     file.part <- paste0(paste(model.date, collapse = ""), "_", sprintf("%02.f", model.run), "00_", sprintf("%03.f", pred), suffix)
 
@@ -101,7 +101,7 @@ CheckNOMADSArchive <- function(abbrev, model.date = NULL) {
     #        $PRED - What predictions are available
     #        $FILE.NAME - The grib file with model data for the date, model run, and prediction
 
-    model.url <- NOMADSArchiveList(abbrev)$url
+    model.url <- NOMADSArchiveList("grib", abbrev=abbrev)$url
     model.list <- c()
     if(is.null(model.date)) { #Check all available dates
         #Find out which months are available

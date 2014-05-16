@@ -1,9 +1,12 @@
-#Use the GrADS-DODS capability of NOMADS to get ascii data
+#use the GrADS-DODS capability of NOMADS to get ascii data
 
-GetDODSDates <- function(abbrev) {
-    #Checks the real time GrADS data server to see what dates and model subsets are available for model specified by ABBREV.
+GetDODSDates <- function(abbrev, archive = FALSE, request.sleep = 0) {
+    #Checks the GrADS data server to see what dates and model subsets are available for model specified by ABBREV.
     #INPUTS
-    #    ABBREV - Model abbreviation for real time NOMADS data
+    #    ABBREV - Model abbreviation
+    #    ARCHIVE - If you're looking in the model archives (TRUE) or the real time NOMADS system (FALSE)
+    #    REQUEST.SLEEP - Sometimes hammering the NOMADS server with a zillion HTTP requests is not a good idea.
+    #    REQUEST.SLEEP pauses X seconds between requests to prevent timeouts.
     #OUTPUTS
     #    AVAILABLE.DATES - A list of model URLS and dates
     #        $ABBREV - Model abbreviation
@@ -11,9 +14,24 @@ GetDODSDates <- function(abbrev) {
     #        $URL - Model url
 
     date.pattern <- "[1-2]\\d{3}[0-1]\\d{1}[0-3]\\d{1}$"
-
-    top.url <- NOMADSRealTimeList("dods", abbrev)$url
-
+    
+    if(!archive) {
+        top.url <- NOMADSRealTimeList("dods", abbrev)$url
+    } else {
+        if(grepl("anl$", abbrev)) {
+            stop(paste("Archived analysis models are not stored by date.",
+                  "To find out the available model runs, get the model URL from NOMADSArchiveList and pass it to GetDODSModelRuns.",
+                  "Then use GETDODSModelRunInfo to find out what coverage the models have, and use DODSGrab to grab the data, where the first argument is the URL from NOMADSArchiveList",
+                  "and the second is the model run from GetDODSModelRuns.")
+                  )
+        } else {
+            top.url <- NOMADSArchiveList("dods",abbrev)$url
+            if(top.url == "NONE") {
+                stop("The archived model you requested is not available on the NCEP DODS system.")
+            }
+        }
+    } 
+     
    if(!RCurl::url.exists(top.url)) {
        stop(paste0("The specified URL does not exist!  Make sure your model information is correct.  It is also possible the NOMADS server is down.\n",
           "Details:  Attempted to access ", top.url, " but did not succeed..."))
@@ -36,6 +54,9 @@ GetDODSDates <- function(abbrev) {
             links.low <- XML::xpathSApply(html.tmp.low, "//a/@href")
             XML::free(html.tmp.low)
             urls.tmp <- append(urls.tmp, links.low[grepl(date.pattern, links.low)])
+            if(request.sleep > 0) {
+                Sys.sleep(request.sleep)
+            }
         }
     } else {
         urls.tmp <- top.links[date.links.lind]
@@ -101,12 +122,14 @@ GetDODSModelRunInfo <- function(model.url, model.run) {
        as.vector(info.table[,3]))
 
    info.arr[which(is.na(info.arr), arr.ind=TRUE)] <- ""
-   model.parameters <- apply(stringr::str_replace_all(info.arr, "Â", ""), 1, paste, collapse = " ")
-
-   return(model.parameters)
+   #Get rid of non ascii characters
+   Encoding(info.arr) <- "bytes"
+   model.info <- apply(stringr::str_replace_all(info.arr, "\\xc3\\x82", ""), 1, paste, collapse = " ")
+   Encoding(info.arr) <- "UTF-8"
+   return(model.info)
 }
 
-DODSGrab <- function(model.url, model.run, variable, time, lon, lat, levels = NULL) {
+DODSGrab <- function(model.url, model.run, variable, time, lon, lat, levels = NULL, display.url = TRUE) {
    #Get data from DODS.  Note that this is slower than GribGrab but will work on all operating systems.
    #Also, we can only do one variable at a time.
    #The output of this function will be the same as the output of ReadGrib in order to maintain consistency across rNOMADS.
@@ -120,6 +143,8 @@ DODSGrab <- function(model.url, model.run, variable, time, lon, lat, levels = NU
    #    LAT is an **index list** of latitudes per info from GetDODSModelRunInfo "c(x,y)"
    #    LEVELS is an **index list** of levels per info from GetDODSModelRunInfo "c(x,y)"
    #         if not NULL, try to request the variable at a certain level.  Will fail if the variable does not have associated levels.
+   #    DISPLAY.URL asks whether to display the URL request for debugging purposes.
+   #        You can paste it into your browser to check to make sure things are working correctly
    #OUTPUTS
    #    MODEL.DATA - the model as an array, with columns for the model run date (when the model was run)
    #       the forecast (when the model was for), the variable (what kind of data), the level (where in the atmosphere or the Earth, vertically)
@@ -139,6 +164,10 @@ DODSGrab <- function(model.url, model.run, variable, time, lon, lat, levels = NU
    lon.str <- paste0("[", paste0(lon, collapse = ":"), "]")
   
    data.url <- paste0(preamble, time.str, level.str, lat.str, lon.str)  
+   
+   if(display.url) {
+       print(data.url)
+   }
 
    #RCurl needs to be loaded for this to work I think
    #data.txt <- readLines(data.url)
@@ -198,6 +227,7 @@ DODSGrab <- function(model.url, model.run, variable, time, lon, lat, levels = NU
        model.data$levels <- rep("level not defined", length(model.data$value))
    }
 
+   model.data$request.url <- data.url
    return(model.data)
 }
 

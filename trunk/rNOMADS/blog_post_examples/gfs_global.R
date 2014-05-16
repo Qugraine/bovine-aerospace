@@ -8,7 +8,7 @@ library(GEOmap)
 library(aqfig)
 
 #Get latest GFS model run
-urls.out <- CrawlModels(abbrev = "gfs0.5", depth = 1)
+urls.out <- CrawlModels(abbrev = "gfs_hd", depth = 1)
 
 #Get analysis (0 hour) forecast
 model.parameters <- ParseModelPage(urls.out[1])
@@ -94,7 +94,7 @@ colormap <- rev(rainbow(500, start = 0 , end = 5/6))
 
 image(atmos$x + 180, sort(atmos$y), wind.mag, col = colormap,
     xlab = "Longitude", ylab = "Latitude",
-    main = paste("World Winds at Ground Level (km/hr):", atmos$fcst.date, "GMT"))
+    main = paste("World Winds at 300 mb (km/hr):", atmos$fcst.date, "GMT"))
 
 #Plot coastlines
 plotGEOmap(coastmap, border = "black", add = TRUE, 

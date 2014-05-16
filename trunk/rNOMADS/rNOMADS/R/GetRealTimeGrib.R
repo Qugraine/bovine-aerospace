@@ -17,7 +17,7 @@ CrawlModels <- function(abbrev = NULL, url = NULL, depth = NULL, verbose = TRUE)
    }
    
    if(is.null(url)) {
-       model.info <- NOMADSRealTimeList(abbrev) 
+       model.info <- NOMADSRealTimeList("grib", abbrev=abbrev) 
        url <- model.info$url[1]
    }   
 

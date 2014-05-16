@@ -1,0 +1,464 @@
+\documentclass[12pt]{article}
+\usepackage{placeins}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\begin{document}
+\setkeys{Gin}{width=\textwidth}
+\title{Downloading and Analyzing Weather Forecast Data with rNOMADS using the GrADS - DODS system}
+\author{Daniel Bowman}
+\date{\today}
+\maketitle
+\tableofcontents
+
+\section{Motivation}
+
+I designed the rNOMADS package to provide a quick and easy interface to the NOAA Operational Model Archive and Distribution System.
+It can retrieve data in ascii format (this works for all operating systems) or in a binary format called GRIB (this works for Linux only at this time).
+This document describes downloading, reading, and displaying ascii data.
+Please refer to the \href{http://www.unc.edu/\%7Ehaksaeng/rNOMADS/rNOMADS_grib_examples.pdf}{companion document} for information on downloading and processing data in GRIB format.
+
+The rNOMADS package provides online access to 55 weather, ocean, and sea ice models.
+This vignette shows how to download data from the Global Forecast System 0.5 x 0.5 degree model.
+This model describes the state of the atmosphere across the entire planet in 0.5 by 0.5 degree cells.
+
+\section{Making Global Weather Maps}
+
+Here, we make five maps.
+The first four are for the analysis forecast - the state of the weather at the time the model was run.
+Figure \ref{fig:2m_temp} is the temperature at 2 meters above the ground.
+High altitude regions such as Tibet and the Andes show up quite well.
+Figure \ref{fig:300mb_temp} is the temperature at the 300 mb pressure level - approximately the height of the jet stream.
+Figure \ref{fig:2m_rh} is the relative humidity at 2 meters above the ground.
+Note how desert regions of the world are clearly depicted.
+Figure \ref{fig:300mb_wind} is the wind speed at 300 mb.
+This is generally where the jet stream shows up.
+The last figure (Figure \ref{fig:ground_gust}) is the surface wind gust forecast 6 hours from now.
+Hurricanes and tropical storms appear as small circular regions in this map.
+
+
+\subsection{Code}
+
+<<>>=
+#Get model data:
+#Planetary temperature, relative humidity, winds 
+#at 2 m above ground and at 300 mb (jet stream level)
+
+library(GEOmap)
+library(rNOMADS)
+library(fields)
+
+#Get latest GFS model
+
+model.urls <- GetDODSDates("gfs_hd")
+latest.model <- tail(model.urls$url, 1)
+model.runs <- GetDODSModelRuns(latest.model)
+latest.model.run <- tail(model.runs$model.run, 1)
+
+#Get data
+
+time <- c(0,0) #Analysis model
+lon <- c(0, 719) #All 720 longitude points
+lat <- c(0, 360) #All 361 latitude points
+
+tmp2m.data <- DODSGrab(latest.model, latest.model.run,
+   "tmp2m", time, lon, lat, display.url = FALSE)
+rh2m.data <- DODSGrab(latest.model, latest.model.run,
+   "rh2m", time, lon, lat, display.url = FALSE)
+
+lev <- c(28,28) #get 300 mb level
+tmp300.data <- DODSGrab(latest.model, latest.model.run,
+   "tmpprs", time, lon, lat, levels = lev, display.url = FALSE)
+ugrd300.data  <- DODSGrab(latest.model, latest.model.run,
+   "ugrdprs", time, lon, lat, levels = lev, display.url = FALSE)
+vgrd300.data  <- DODSGrab(latest.model, latest.model.run,
+   "vgrdprs", time, lon, lat, levels = lev, display.url = FALSE)
+@
+
+<<>>=
+#FIGURE 1
+#Temperature at ground level
+
+#Make model grid
+
+atmos <- ModelGrid(tmp2m.data, c(0.5, 0.5), "latlon")
+
+#Set up color scale
+colormap <- rev(rainbow(500, start = 0 , end = 5/6))
+
+#Save image to PNG file
+#Omit this line if you want to display image
+#rather than save to file
+png(file = "fig_ground_temp.png", width = 1000, height = 750)
+
+#Make forecast image
+image(atmos$x, sort(atmos$y), atmos$z[1,1,,], col = colormap,
+    xlab = "Longitude", ylab = "Latitude",
+    main = paste("World Temperature at Ground Level:", atmos$fcst.date))
+
+#Plot coastlines
+plotGEOmap(coastmap, border = "black", add = TRUE, 
+    MAPcol = NA)
+
+#Turn of PNG device
+#Omit this line if you want to display image
+#rather than save to file
+dev.off()
+@
+
+<<>>=
+#FIGURE 2
+#Temperature at 300 mb
+atmos <- ModelGrid(tmp300.data, c(0.5, 0.5), "latlon")
+colormap <- rev(rainbow(500, start = 0 , end = 5/6))
+png(file = "fig_300mb_temp.png", width = 1000, height = 750)
+image(atmos$x, atmos$y, atmos$z[1,1,,], col = colormap,
+    xlab = "Longitude", ylab = "Latitude", 
+    main = paste("World Temperature at 300 mb:", atmos$fcst.date))
+plotGEOmap(coastmap, border = "black", add = TRUE, 
+    MAPcol = NA)
+dev.off()
+@
+
+<<>>=
+#FIGURE 3
+#Relative humidity at ground level
+
+colormap <- rainbow(500, start = 0 , end = 5/6)
+atmos <- ModelGrid(rh2m.data, c(0.5, 0.5), "latlon")
+png(file = "fig_ground_rh.png", width = 1000, height = 750)
+image(atmos$x, atmos$y, atmos$z[1,1,,], col = colormap,
+    xlab = "Longitude", ylab = "Latitude", 
+    main = paste("World Relative Humidity at Ground Level:", 
+    atmos$fcst.date))
+plotGEOmap(coastmap, border = "black", add = TRUE,
+    MAPcol = NA)
+dev.off()
+@
+
+<<>>=
+#FIGURE 4
+#Winds at 300 mb (around jet stream level)
+atmos.ew <- ModelGrid(ugrd300.data, c(0.5, 0.5), "latlon")
+atmos.ns <- ModelGrid(vgrd300.data, c(0.5, 0.5), "latlon")
+winds.vel <- sqrt(atmos.ew$z[1,1,,]^2 + atmos.ns$z[1,1,,]^2)
+colormap <- rainbow(500, start = 0 , end = 5/6)
+png(file = "fig_300mb_winds.png", width = 1000, height = 750)
+image(atmos.ew$x, atmos.ew$y, winds.vel, col = colormap,
+    xlab = "Longitude", ylab = "Latitude", 
+    main = paste("World Wind Velocity at 300 mb:", atmos$fcst.date))
+plotGEOmap(coastmap, border = "black", add = TRUE,
+    MAPcol = NA)
+dev.off()
+@ 
+
+<<>>=
+#Get model data
+#and plot 10 m wind speed for 6 hr forecast
+
+time <- c(2,2) #6 hr forecast
+
+u10.data <- DODSGrab(latest.model, latest.model.run,
+   "ugrd10m", time, lon, lat, display.url = FALSE)
+v10.data <-DODSGrab(latest.model, latest.model.run,
+   "vgrd10m", time, lon, lat, display.url = FALSE)
+ 
+#Make an array for quick indexing
+atmos.u10 <- ModelGrid(u10.data, c(0.5, 0.5))
+atmos.v10 <- ModelGrid(v10.data, c(0.5, 0.5))
+
+#Wind magnitude
+winds.vel <- sqrt(atmos.u10$z[1,1,,]^2 + atmos.v10$z[1,1,,]^2)
+
+#FIGURE 5
+png(file = "fig_ground_gust.png", width = 1000, height = 750)
+image(atmos$x, atmos$y, winds.vel, col = colormap,
+    xlab = "Longitude", ylab = "Latitude",
+    main = paste("World Wind Speed at 10 m above ground:", atmos$fcst.date))
+plotGEOmap(coastmap, border = "black", add = TRUE,
+    MAPcol = NA)
+dev.off()
+
+@
+
+\subsection{Figures}
+
+\FloatBarrier
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics{fig_ground_temp.png}
+\end{center}
+\caption{Temperature at 2 m above ground (red is hot, purple is cold).  
+Note how high altitude regions show up as cold spots.}
+\label{fig:2m_temp}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics{fig_300mb_temp.png}
+\end{center}
+\caption{Temperature of the upper troposphere (red is hot, purple is cold).  
+Note how there is little relation between the location of continents and temperature.}
+\label{fig:300mb_temp}
+\end{figure}
+
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics{fig_ground_rh.png}
+\end{center}
+\caption{Relative humidity at 2 m above the ground (purple is high, red is low).
+Desert regions show up nicely.}
+\label{fig:2m_rh}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics{fig_300mb_winds.png}
+\end{center}
+\caption{Wind velocity in the upper troposphere (purple is fast, red is slow).
+Jet streams may show up here as patchy regions of intense wind.}
+\label{fig:300mb_wind}
+\end{figure}
+
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics{fig_ground_gust.png}
+\end{center}
+\caption{Wind gust speed at the ground surface 6 hours from now (purple is fast, red is slow).
+Hurricanes and tropical storms show up as small purple dots.}
+\label{fig:ground_gust}
+\end{figure}
+
+\FloatBarrier
+
+\section{Creating Atmospheric Profiles}
+
+We can generate data for specific points very quickly with rNOMADS.
+In this case, we will investigate the temperature and wind speed versus height directly above the University of North Carolina at Chapel Hill.
+The tropopause is clearly visible in the temperature profile (Figure \ref{fig:temp_profile}).
+Wind speeds can be surprisingly high at times (Figure \ref{fig:wind_profile}).
+We then show a quick calculation of sound velocity versus height (Figure \ref{fig:c_profile}) using the formula:
+\begin{equation}
+c = 331.3 \sqrt{1 + \frac{T}{273.15}}
+\end{equation}
+where $c$ is the speed of sound in dry air and $T$ is the temperature in degrees Celsius.
+This does not take into account wind speed (a significant omission!).
+
+Finally, we end with a calculation of atmospheric density versus height (Figure \ref{fig:rho_profile}) via
+\begin{equation}
+\rho = \frac{p}{R_{specific} T}
+\end{equation}
+where $\rho$ is density, $p$ is pressure, $R_{specific}$ is the specific gas constant for dry air and $T$ is temperature.
+
+\subsection{Code}
+
+<<>>=
+
+library(rNOMADS)
+
+#Location to examine
+lon <- -79.052104
+lat <- 35.907553
+
+#Figure out nearest model node to this point
+
+lons <- seq(0, 359.5, by = 0.5)
+lats <- seq(-90, 90, by = 0.5)
+
+lon.diff <- abs(lon + 360 - lons)
+lat.diff <- abs(lat - lats)
+
+model.lon.ind <- which(lon.diff == min(lon.diff)) - 1
+model.lat.ind <- which(lat.diff == min(lat.diff)) - 1
+
+model.urls <- GetDODSDates("gfs_hd")
+latest.model <- tail(model.urls$url, 1)
+model.runs <- GetDODSModelRuns(latest.model)
+latest.model.run <- tail(model.runs$model.run, 1)
+
+#Get data
+
+time <- c(0,0) #Analysis model
+lev <- c(0, 46) #All levels in atmosphere
+
+#Temperature
+tmp.data <- DODSGrab(latest.model, latest.model.run,
+   "tmpprs", time, rep(model.lon.ind, 2), rep(model.lat.ind, 2), 
+    levels = lev, display.url = FALSE)
+
+#Geopotential height
+hgt.data <- DODSGrab(latest.model, latest.model.run,
+   "hgtprs", time, rep(model.lon.ind, 2), rep(model.lat.ind, 2), 
+    levels = lev, display.url = FALSE)
+
+#E-W wind
+ugrd.data <- DODSGrab(latest.model, latest.model.run,
+   "ugrdprs", time, rep(model.lon.ind, 2), rep(model.lat.ind, 2), 
+    levels = lev, display.url = FALSE)
+
+#N-S wind
+vgrd.data <- DODSGrab(latest.model, latest.model.run,
+   "vgrdprs", time, rep(model.lon.ind, 2), rep(model.lat.ind, 2),  
+    levels = lev, display.url = FALSE)
+
+
+hgt <- hgt.data$value
+
+@
+
+<<>>=
+
+#FIGURE 6 - temperature
+
+
+tmp <- tmp.data$value - 273.15
+
+#Let's make a spline
+
+tmp.spline <- splinefun(hgt, tmp, method = "natural")
+
+synth.hgt <- seq(min(hgt), max(hgt), length.out = 1000)
+synth.tmp <- tmp.spline(synth.hgt)
+
+png(file = "fig_tmp_profile.png", width = 500, height = 500)
+
+plot(tmp, hgt, pch = 19, col = "red", 
+   xlab = "Temperature (C)", ylab = "Height (m)",
+   main = paste("Temperature versus Geopotential Height:",  
+   atmos$fcst.date))
+lines(synth.tmp, synth.hgt, col = "blue")
+legend("topright", col = c("red", "blue"), pch = c(19, NA),
+   lty = c(NA, 1), legend = c("Model Values", "Spline Fit"))
+dev.off()
+
+@
+
+<<>>=
+
+#FIGURE 7 - Wind Speed
+
+wu <- ugrd.data$value
+wv <- vgrd.data$value
+wvel <- sqrt(wu^2 + wv^2) 
+
+#Convert to km/hr
+wvel <- wvel * 3.6
+
+#Let's make a spline 
+
+tmp.spline <- splinefun(hgt, wvel, method = "natural")
+
+synth.hgt <- seq(min(hgt), max(hgt), length.out = 1000)
+synth.wvel <- tmp.spline(synth.hgt)
+
+png(file = "fig_wind_profile.png", width = 500, height = 500)
+
+plot(wvel, hgt, pch = 19, col = "red",
+   xlab = "Wind Speed (km/hr)", ylab = "Height (m)",
+   main = paste("Wind Speed versus Geopotential Height:",  
+   atmos$fcst.date))
+lines(synth.wvel, synth.hgt, col = "blue")
+legend("bottomright", col = c("red", "blue"), pch = c(19, NA),
+   lty = c(NA, 1), legend = c("Model Values", "Spline Fit"))
+dev.off()
+
+@
+
+<<>>=
+
+#FIGURE 8
+#NAIVE SOUND SPEED
+
+#Assuming it only depends on temperature
+#Let's make a spline
+
+tmp.spline <- splinefun(hgt, tmp, method = "natural")
+
+synth.hgt <- seq(min(hgt), max(hgt), length.out = 1000)
+synth.tmp <- tmp.spline(synth.hgt)
+
+c <- 331.5 * sqrt(1 + tmp / 273.15)
+synth.c <- 331.5 * sqrt(1 + synth.tmp / 273.15)
+
+png(file = "fig_sound_profile.png", width = 500, height = 500)
+
+plot(c, hgt, pch = 19, col = "red",
+   xlab = "Speed of Sound (m/s)", ylab = "Height (m)",
+   main = paste("Speed of Sound versus Geopotential Height:",  
+   atmos$fcst.date))
+lines(synth.c, synth.hgt, col = "blue")
+legend("topright", col = c("red", "blue"), pch = c(19, NA),
+   lty = c(NA, 1), legend = c("Model Values", "Spline Fit"))
+dev.off()
+
+@
+
+<<>>=
+
+#FIGURE 8
+#ATMOSPHERIC DENSITY (ASSUMING DRY AIR)
+
+p <- ugrd.data$levels * 100
+R <- 287.058 #Specific gas constant, J/(kg * K)
+
+rho <- p / ((tmp + 273.15) * R) #Air density
+
+rho.spline <- splinefun(hgt, rho, method = "natural")
+synth.hgt <- seq(min(hgt), max(hgt), length.out = 1000)
+synth.rho <- rho.spline(synth.hgt)
+
+png(file = "fig_density_profile.png", width = 500, height = 500)
+
+plot(rho, hgt, pch = 19, col = "red",
+   xlab = "Density (kg/m3)", ylab = "Height (m)",
+   main = paste("Dry Air Density versus Geopotential Height:",
+   atmos$fcst.date))
+lines(synth.rho, synth.hgt, col = "blue")
+legend("topright", col = c("red", "blue"), pch = c(19, NA),
+   lty = c(NA, 1), legend = c("Model Values", "Spline Fit"))
+dev.off()
+
+@
+
+\subsection{Figures}
+
+\FloatBarrier
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics{fig_tmp_profile.png}
+\end{center}
+\caption{Temperature profile of the atmosphere near Chapel Hill, North Carolina.}
+\label{fig:temp_profile}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics{fig_wind_profile.png}
+\end{center}
+\caption{Wind speed profile of the atmosphere near Chapel Hill, North Carolina.}
+\label{fig:wind_profile}
+\end{figure}
+
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics{fig_sound_profile.png}
+\end{center}
+\caption{Sound speed profile of the atmosphere near Chapel Hill, North Carolina.
+This calculation assumes temperature dependence only.}
+\label{fig:c_profile}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics{fig_density_profile.png}
+\end{center}
+\caption{Air profile of the atmosphere near Chapel Hill, North Carolina.
+This calculation assumes that the air is perfectly dry.}
+\label{fig:rho_profile}
+\end{figure}
+
+\end{document}
