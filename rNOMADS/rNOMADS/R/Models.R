@@ -159,8 +159,7 @@ NOMADSArchiveList <- function(url.type, abbrev = NULL) {
     #If a specific model abbreviation is requested, the abbreviation is checked against the model list.
     #If a match is found, information is returned about that model; otherwise an error occurs
     #INPUTS
-    # URL.TYPE determines which URL to return: one for downloading GRIB files (grib) or one for downloading dods data via DODS (dods)
-
+    #    URL.TYPE determines which URL to return: one for downloading GRIB files (grib) or one for downloading dods data via DODS (dods)
     #    ABBREV is the model abbreviation that rNOMADS uses to figure out which model you want.
     #        If NULL, returns information on all models
     #OUTPUTS

@@ -13,7 +13,7 @@ pressure <- c(1, 2, 3, 5, 7,
 levels <- paste(pressure, " mb", sep = "")
 
 #Get analysis forecast for latest model run
-urls.out <- CrawlModels(abbrev = "gfs0.5", depth = 1)
+urls.out <- CrawlModels(abbrev = "gfs_hd", depth = 1)
 model.parameters <- ParseModelPage(urls.out[1])
 pred <- model.parameters$pred[1]
 
