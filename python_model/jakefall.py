@@ -799,7 +799,7 @@ def monte_carlo_balloon_flight(launch_point, flight_data, model_parameters):
 
 
 launch_point=[launch_lat, launch_lon]
-forecast=0
+forecast=30
 #foo=monte_carlo_balloon_flight([launch_lat, launch_lon], flight_data, model_parameters)
 model_format="list" #kml or list
 launch_time=get_most_recent_model_time() #Get the most recent model off of the UW website
@@ -815,14 +815,14 @@ model_resolution=100
 display=True
 forward=True
 mb=1
-L=2.5
+L=1.75
 po=1.06
 ma=0.02897
 mp=0.004002602
-mi=1
+mi=1.5
 dcd=1.5
 rp=0.3
-rb=3.05
+rb=3.8
 trials=1
 file_name=str(launch_time)+"_point_"+str(round(launch_point[0], 3))+"_"+str(round(launch_point[1], 3))+".txt"
 print("Get estimated landing point for descent model")

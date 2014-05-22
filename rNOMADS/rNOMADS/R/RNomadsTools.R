@@ -92,6 +92,7 @@ GetClosestGFSForecasts <- function(forecast.date, model.date = "latest", depth =
          model.run.dates <- unlist(stringr::str_extract_all(urls.out, "\\d{10}")) 
          if(model.date %in% model.run.dates) {
               url.to.use <- urls.out[which(model.date == model.run.dates)]
+              model.parameters <- ParseModelPage(url.to.use)
          } else {
              stop(paste0("The model run date ", model.date, " does not appear in the list of model runs on the NOMADS server."))
          }
