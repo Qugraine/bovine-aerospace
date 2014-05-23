@@ -1,0 +1,1 @@
+Weight of tracker payload that was dropped: 435 g
