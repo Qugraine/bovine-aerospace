@@ -188,7 +188,7 @@ ModelGrid <- function(model.data, resolution, grid.type = "latlon", levels = NUL
     }
  
     if(grid.type == "latlon") {
-        nodes.xy <- cbind(model.data$lon, model.data$lat)
+        nodes.xy <- cbind(model.data$lon[1:65160], model.data$lat[1:65160])
     } else if(grid.type == "cartesian") {
         proj <- GEOmap::setPROJ(type =2, LAT0 = median(model.data$lat), LON0 = median(model.data$lon))
         tmp.xy <- GEOmap::GLOB.XY(model.data$lat, model.data$lon, proj)
@@ -236,7 +236,7 @@ ModelGrid <- function(model.data, resolution, grid.type = "latlon", levels = NUL
 
     #Build grid
 
-    grid <- list(x = seq(model.domain[1], model.domain[2], by = resolution[1]),
+    grid2 <- list(x = seq(model.domain[1], model.domain[2], by = resolution[1]),
        y = seq(model.domain[4], model.domain[3], by = resolution[2]))
     
     fcst.grid <- list(z = array(rep(NA, length(grid$x) * length(grid$y) * length(variables) * length(levels)),
@@ -248,11 +248,12 @@ ModelGrid <- function(model.data, resolution, grid.type = "latlon", levels = NUL
     for(lvl in levels) {
         for(var in variables) {
              mi <- which(var == model.data$variables & lvl == model.data$levels) 
+
              if(length(mi) > 0) {
                  fcst.grid$z[which(lvl == fcst.grid$levels), which(var == fcst.grid$variables),,] <- fields::as.image(
-                     as.numeric(model.data$value[mi]),
-                     grid = grid,
-                     x = nodes.xy[mi,])$z
+                     Z=as.numeric(model.data$value[mi]),
+                     grid = grid2,
+                     x = nodes.xy)$z
               }
         }
     }
