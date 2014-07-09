@@ -31,3 +31,6 @@ I am sorry for this necessity but I had to conform with the existing NOMADS URL 
 2.0-1
 Fixed some bugs, including a problem with ModelGrid caused by an update in the "fields" package.
 Added two new global models.
+
+2.0-2
+Fixed typos in model names.
